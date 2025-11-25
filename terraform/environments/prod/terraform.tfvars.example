@@ -1,0 +1,10 @@
+# 🔐 민감한 정보 (Git에서 무시됨)
+# 이 파일을 terraform.tfvars로 복사하여 실제 값을 입력하세요.
+# 비민감한 정보는 variables.tf의 기본값으로 관리됩니다.
+
+# RDS 비밀번호
+db_password = "CHANGE_ME_STRONG_PASSWORD_MIN_16_CHARS"
+
+# 애플리케이션 시크릿 키
+jwt_secret_key  = "CHANGE_ME_PRODUCTION_JWT_SECRET_KEY_AT_LEAST_64_CHARACTERS_RANDOM"
+toss_secret_key = "live_sk_..."  # 토스페이먼츠 라이브 키 (개발: test_sk_...)
