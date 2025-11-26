@@ -84,7 +84,7 @@ module "rds" {
   database_name                = var.db_name
   master_username              = var.db_username
   master_password              = var.db_password
-  backup_retention_period      = 7                 # 비용 절감: 7일
+  backup_retention_period      = 30                # 운영 안전: 30일
   multi_az                     = false             # 비용 절감: Single-AZ
   deletion_protection          = true              # 운영 환경: 삭제 방지 활성화
   skip_final_snapshot          = false             # 운영 환경: 최종 스냅샷 생성

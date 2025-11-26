@@ -1,0 +1,5 @@
+project_name         = "bt-portal"
+aws_region           = "ap-northeast-2"
+cors_allowed_origins = ["http://localhost:3000"]
+
+
