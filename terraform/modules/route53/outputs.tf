@@ -13,11 +13,6 @@ output "frontend_fqdn" {
   value       = aws_route53_record.frontend.fqdn
 }
 
-output "admin_fqdn" {
-  description = "관리자 FQDN"
-  value       = aws_route53_record.admin.fqdn
-}
-
 output "api_fqdn" {
   description = "API FQDN"
   value       = aws_route53_record.api.fqdn

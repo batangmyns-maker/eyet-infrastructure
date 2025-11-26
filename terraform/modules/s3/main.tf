@@ -39,47 +39,6 @@ resource "aws_s3_bucket_versioning" "frontend" {
   }
 }
 
-# S3 버킷 - 관리자 프론트엔드
-resource "aws_s3_bucket" "admin" {
-  bucket = "${var.project_name}-${var.environment}-admin"
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-admin"
-    Environment = var.environment
-    Project     = var.project_name
-    Purpose     = "Admin Frontend Static Hosting"
-  }
-}
-
-resource "aws_s3_bucket_website_configuration" "admin" {
-  bucket = aws_s3_bucket.admin.id
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "index.html"  # SPA용
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "admin" {
-  bucket = aws_s3_bucket.admin.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_versioning" "admin" {
-  bucket = aws_s3_bucket.admin.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
 # S3 버킷 - 파일 업로드
 resource "aws_s3_bucket" "uploads" {
   bucket = "${var.project_name}-${var.environment}-uploads"
@@ -106,19 +65,6 @@ resource "aws_s3_bucket_versioning" "uploads" {
 
   versioning_configuration {
     status = "Enabled"
-  }
-}
-
-# S3 버킷 - CORS 설정 (파일 업로드용)
-resource "aws_s3_bucket_cors_configuration" "uploads" {
-  bucket = aws_s3_bucket.uploads.id
-
-  cors_rule {
-    allowed_headers = ["*"]
-    allowed_methods = ["GET", "PUT", "POST", "DELETE", "HEAD"]
-    allowed_origins = var.cors_allowed_origins
-    expose_headers  = ["ETag", "Content-Type", "Content-Length"]
-    max_age_seconds = 3600
   }
 }
 
@@ -160,16 +106,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
 # S3 버킷 - 암호화 (모든 버킷)
 resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
   bucket = aws_s3_bucket.frontend.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "admin" {
-  bucket = aws_s3_bucket.admin.id
 
   rule {
     apply_server_side_encryption_by_default {

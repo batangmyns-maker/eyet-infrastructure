@@ -21,13 +21,13 @@ variable "aws_region" {
 variable "use_custom_domain" {
   description = "커스텀 도메인 사용 여부 (false면 CloudFront 기본 도메인 사용)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "domain_name" {
   description = "기본 도메인 이름 (use_custom_domain이 true일 때 필요)"
   type        = string
-  default     = ""
+  default     = "eyet.kr"
 }
 
 # VPC 설정
@@ -133,7 +133,10 @@ variable "toss_secret_key" {
 variable "cors_allowed_origins" {
   description = "CORS 허용 오리진 (CloudFront 기본 도메인 사용 시 * 허용)"
   type        = list(string)
-  default     = ["*"]  # 커스텀 도메인 사용 시 명시적으로 도메인 지정 필요
+  default     = [
+    "https://www.eyet.kr",
+    "https://eyet.kr"
+  ]
 }
 
 

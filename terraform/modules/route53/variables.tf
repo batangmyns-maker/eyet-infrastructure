@@ -18,11 +18,6 @@ variable "frontend_subdomain" {
   type        = string
 }
 
-variable "admin_subdomain" {
-  description = "관리자 서브도메인 (admin.example.com)"
-  type        = string
-}
-
 variable "api_subdomain" {
   description = "API 서브도메인 (api.example.com)"
   type        = string
@@ -35,11 +30,6 @@ variable "cdn_subdomain" {
 
 variable "frontend_cloudfront_domain" {
   description = "프론트엔드 CloudFront Domain Name"
-  type        = string
-}
-
-variable "admin_cloudfront_domain" {
-  description = "관리자 CloudFront Domain Name"
   type        = string
 }
 

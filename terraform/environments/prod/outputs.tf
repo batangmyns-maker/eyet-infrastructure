@@ -34,11 +34,6 @@ output "s3_frontend_bucket" {
   value       = module.s3.frontend_bucket_id
 }
 
-output "s3_admin_bucket" {
-  description = "관리자 S3 버킷"
-  value       = module.s3.admin_bucket_id
-}
-
 output "s3_uploads_bucket" {
   description = "업로드 S3 버킷"
   value       = module.s3.uploads_bucket_id
@@ -48,11 +43,6 @@ output "s3_uploads_bucket" {
 output "cloudfront_frontend_url" {
   description = "프론트엔드 CloudFront URL"
   value       = "https://${module.cloudfront.frontend_distribution_domain_name}"
-}
-
-output "cloudfront_admin_url" {
-  description = "관리자 CloudFront URL"
-  value       = "https://${module.cloudfront.admin_distribution_domain_name}"
 }
 
 output "cloudfront_api_url" {
@@ -75,11 +65,6 @@ output "route53_name_servers" {
 output "custom_frontend_url" {
   description = "프론트엔드 커스텀 URL"
   value       = var.use_custom_domain ? "https://www.${var.domain_name}" : null
-}
-
-output "custom_admin_url" {
-  description = "관리자 커스텀 URL"
-  value       = var.use_custom_domain ? "https://admin.${var.domain_name}" : null
 }
 
 output "custom_api_url" {
@@ -107,7 +92,6 @@ output "deployment_info" {
     use_custom_domain = var.use_custom_domain
     urls = {
       frontend = "https://${module.cloudfront.frontend_distribution_domain_name}"
-      admin    = "https://${module.cloudfront.admin_distribution_domain_name}"
       api      = "https://${module.cloudfront.api_distribution_domain_name}"
       cdn      = "https://${module.cloudfront.uploads_distribution_domain_name}"
     }

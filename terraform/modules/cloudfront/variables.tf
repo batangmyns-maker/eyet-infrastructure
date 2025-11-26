@@ -19,11 +19,6 @@ variable "frontend_bucket_domain_name" {
   type        = string
 }
 
-variable "admin_bucket_domain_name" {
-  description = "관리자 S3 버킷 도메인"
-  type        = string
-}
-
 variable "uploads_bucket_domain_name" {
   description = "업로드 S3 버킷 도메인"
   type        = string
@@ -46,12 +41,6 @@ variable "frontend_domain" {
   default     = ""
 }
 
-variable "admin_domain" {
-  description = "관리자 도메인 (admin.example.com)"
-  type        = string
-  default     = ""
-}
-
 variable "api_domain" {
   description = "API 도메인 (api.example.com)"
   type        = string
@@ -60,6 +49,12 @@ variable "api_domain" {
 
 variable "cdn_domain" {
   description = "CDN 도메인 (cdn.example.com)"
+  type        = string
+  default     = ""
+}
+
+variable "root_domain" {
+  description = "루트 도메인 (example.com)"
   type        = string
   default     = ""
 }
@@ -80,4 +75,16 @@ variable "custom_header_value" {
   description = "CloudFront에서 EC2로 전송할 커스텀 헤더 값 (보안용)"
   type        = string
   default     = "random-secret-value-12345"
+}
+
+variable "api_allowed_origins" {
+  description = "API CloudFront에서 허용할 Origin 목록 (CORS)"
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "enable_unified_distribution" {
+  description = "예시 unified distribution 리소스를 생성할지 여부 (기본 비활성화)"
+  type        = bool
+  default     = false
 }

@@ -35,32 +35,6 @@ resource "aws_route53_record" "frontend_ipv6" {
   }
 }
 
-# A 레코드 - 관리자 (admin)
-resource "aws_route53_record" "admin" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = var.admin_subdomain
-  type    = "A"
-
-  alias {
-    name                   = var.admin_cloudfront_domain
-    zone_id                = var.cloudfront_hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
-# AAAA 레코드 - 관리자 (IPv6)
-resource "aws_route53_record" "admin_ipv6" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = var.admin_subdomain
-  type    = "AAAA"
-
-  alias {
-    name                   = var.admin_cloudfront_domain
-    zone_id                = var.cloudfront_hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
 # A 레코드 - API
 resource "aws_route53_record" "api" {
   zone_id = aws_route53_zone.main.zone_id

@@ -234,17 +234,17 @@ module "cloudfront" {
   environment                 = var.environment
   use_custom_domain           = var.use_custom_domain
   frontend_bucket_domain_name = module.s3.frontend_bucket_domain_name
-  admin_bucket_domain_name    = module.s3.admin_bucket_domain_name
   uploads_bucket_domain_name  = module.s3.uploads_bucket_domain_name
   ec2_public_dns              = module.ec2.instance_public_dns
   backend_port                = var.server_port
 
   # 커스텀 도메인 설정 (use_custom_domain이 true일 때만 사용)
   frontend_domain     = var.use_custom_domain ? "www.${var.domain_name}" : ""
-  admin_domain        = var.use_custom_domain ? "admin.${var.domain_name}" : ""
   api_domain          = var.use_custom_domain ? "api.${var.domain_name}" : ""
   cdn_domain          = var.use_custom_domain ? "cdn.${var.domain_name}" : ""
+  root_domain         = var.use_custom_domain ? var.domain_name : ""
   acm_certificate_arn = var.use_custom_domain ? aws_acm_certificate_validation.main[0].certificate_arn : null
+  api_allowed_origins  = var.cors_allowed_origins
 
   price_class = "PriceClass_200" # 아시아, 유럽, 북미
 
@@ -291,15 +291,15 @@ resource "aws_route53_record" "frontend_ipv6" {
   depends_on = [module.cloudfront]
 }
 
-# A 레코드 - 관리자 (admin)
-resource "aws_route53_record" "admin" {
+# A 레코드 - 루트 도메인
+resource "aws_route53_record" "root" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
-  name    = "admin.${var.domain_name}"
+  name    = var.domain_name
   type    = "A"
 
   alias {
-    name                   = module.cloudfront.admin_distribution_domain_name
+    name                   = module.cloudfront.frontend_distribution_domain_name
     zone_id                = local.cloudfront_hosted_zone_id
     evaluate_target_health = false
   }
@@ -307,15 +307,15 @@ resource "aws_route53_record" "admin" {
   depends_on = [module.cloudfront]
 }
 
-# AAAA 레코드 - 관리자 (IPv6)
-resource "aws_route53_record" "admin_ipv6" {
+# AAAA 레코드 - 루트 도메인 (IPv6)
+resource "aws_route53_record" "root_ipv6" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
-  name    = "admin.${var.domain_name}"
+  name    = var.domain_name
   type    = "AAAA"
 
   alias {
-    name                   = module.cloudfront.admin_distribution_domain_name
+    name                   = module.cloudfront.frontend_distribution_domain_name
     zone_id                = local.cloudfront_hosted_zone_id
     evaluate_target_health = false
   }
@@ -409,33 +409,6 @@ resource "aws_s3_bucket_policy" "frontend" {
         Condition = {
           StringEquals = {
             "AWS:SourceArn" = module.cloudfront.frontend_distribution_arn
-          }
-        }
-      }
-    ]
-  })
-
-  depends_on = [module.cloudfront]
-}
-
-# S3 버킷 정책 - CloudFront OAC용 (관리자)
-resource "aws_s3_bucket_policy" "admin" {
-  bucket = module.s3.admin_bucket_id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowCloudFrontServicePrincipal"
-        Effect = "Allow"
-        Principal = {
-          Service = "cloudfront.amazonaws.com"
-        }
-        Action   = "s3:GetObject"
-        Resource = "${module.s3.admin_bucket_arn}/*"
-        Condition = {
-          StringEquals = {
-            "AWS:SourceArn" = module.cloudfront.admin_distribution_arn
           }
         }
       }

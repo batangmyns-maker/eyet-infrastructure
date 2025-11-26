@@ -42,6 +42,7 @@ resource "aws_secretsmanager_secret" "jwt_secret" {
   }
 }
 
+# JWT Secret - 평탄화된 구조
 resource "aws_secretsmanager_secret_version" "jwt_secret" {
   secret_id = aws_secretsmanager_secret.jwt_secret.id
   secret_string = jsonencode({
