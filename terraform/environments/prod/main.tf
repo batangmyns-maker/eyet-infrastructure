@@ -65,8 +65,8 @@ module "security_groups" {
   vpc_id            = module.vpc.vpc_id
   vpc_cidr          = var.vpc_cidr
   app_port          = var.server_port
-  allowed_ssh_cidrs = var.allowed_ssh_cidrs
-  allowed_rds_public_cidrs = var.rds_allowed_public_cidrs
+  allowed_ssh_cidrs = var.trusted_operator_cidrs
+  allowed_rds_public_cidrs = var.trusted_operator_cidrs
 }
 
 # ============================================================
@@ -238,7 +238,7 @@ module "cloudfront" {
   frontend_bucket_domain_name = module.s3.frontend_bucket_domain_name
   uploads_bucket_domain_name  = module.s3.uploads_bucket_domain_name
   ec2_public_dns              = module.ec2.instance_public_dns
-  backend_port                = var.server_port
+  backend_port                = var.cloudfront_backend_port
 
   # 커스텀 도메인 설정 (use_custom_domain이 true일 때만 사용)
   frontend_domain     = var.use_custom_domain ? "www.${var.domain_name}" : ""
@@ -426,22 +426,63 @@ resource "aws_s3_bucket_policy" "uploads" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowCloudFrontServicePrincipal"
-        Effect = "Allow"
-        Principal = {
-          Service = "cloudfront.amazonaws.com"
+    Statement = concat(
+      [
+        {
+          Sid    = "AllowCloudFrontServicePrincipal"
+          Effect = "Allow"
+          Principal = {
+            Service = "cloudfront.amazonaws.com"
+          }
+          Action   = "s3:GetObject"
+          Resource = "${module.s3.uploads_bucket_arn}/*"
+          Condition = {
+            StringEquals = {
+              "AWS:SourceArn" = module.cloudfront.uploads_distribution_arn
+            }
+          }
+        },
+        {
+          Sid    = "AllowBackendEc2RoleAccess"
+          Effect = "Allow"
+          Principal = {
+            AWS = module.ec2.iam_role_arn
+          }
+          Action = [
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:DeleteObject",
+            "s3:ListBucket"
+          ]
+          Resource = [
+            module.s3.uploads_bucket_arn,
+            "${module.s3.uploads_bucket_arn}/*"
+          ]
         }
-        Action   = "s3:GetObject"
-        Resource = "${module.s3.uploads_bucket_arn}/*"
-        Condition = {
-          StringEquals = {
-            "AWS:SourceArn" = module.cloudfront.uploads_distribution_arn
+      ],
+      length(var.trusted_operator_cidrs) > 0 ? [
+        {
+          Sid       = "AllowWhitelistedIpAccess"
+          Effect    = "Allow"
+          Principal = "*"
+          Action = [
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:DeleteObject",
+            "s3:ListBucket"
+          ]
+          Resource = [
+            module.s3.uploads_bucket_arn,
+            "${module.s3.uploads_bucket_arn}/*"
+          ]
+          Condition = {
+            IpAddress = {
+              "aws:SourceIp" = var.trusted_operator_cidrs
+            }
           }
         }
-      }
-    ]
+      ] : []
+    )
   })
 
   depends_on = [module.cloudfront]

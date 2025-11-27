@@ -55,6 +55,12 @@ variable "private_subnet_cidrs" {
   default     = ["10.1.11.0/24", "10.1.12.0/24"]
 }
 
+variable "trusted_operator_cidrs" {
+  description = "관리자가 접속하는 고정 IP(CIDR)"
+  type        = list(string)
+  default     = ["112.222.28.115/32"]
+}
+
 # EC2 설정
 variable "ec2_instance_type" {
   description = "EC2 인스턴스 타입"
@@ -72,12 +78,6 @@ variable "ec2_ami_id" {
   description = "EC2 AMI ID (Amazon Linux 2023 kernel-6.1)"
   type        = string
   default     = "ami-04fcc2023d6e37430"  # Amazon Linux 2023 kernel-6.1 x86_64 (ap-northeast-2)
-}
-
-variable "allowed_ssh_cidrs" {
-  description = "SSH 접근 허용 CIDR (Session Manager 사용 시 빈 배열)"
-  type        = list(string)
-  default     = ["112.222.28.115/32"]
 }
 
 # RDS 설정
@@ -117,17 +117,17 @@ variable "rds_publicly_accessible" {
   default     = true
 }
 
-variable "rds_allowed_public_cidrs" {
-  description = "RDS 퍼블릭 접근 허용 CIDR 목록"
-  type        = list(string)
-  default     = ["112.222.28.115/32"]
-}
-
 # 애플리케이션 설정
 variable "server_port" {
   description = "애플리케이션 서버 포트"
   type        = number
   default     = 18082
+}
+
+variable "cloudfront_backend_port" {
+  description = "CloudFront 오리진이 연결할 포트 (Nginx 리버스 프록시 등)"
+  type        = number
+  default     = 80
 }
 
 variable "jwt_secret_key" {

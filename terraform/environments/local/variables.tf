@@ -16,4 +16,10 @@ variable "cors_allowed_origins" {
   default     = ["http://localhost:3000", "http://127.0.0.1:3000"]
 }
 
+variable "trusted_operator_cidrs" {
+  description = "로컬 환경에서 고정 IP(CIDR)"
+  type        = list(string)
+  default     = ["112.222.28.115/32"]
+}
+
 

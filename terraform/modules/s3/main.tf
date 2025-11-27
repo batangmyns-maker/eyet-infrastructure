@@ -41,10 +41,10 @@ resource "aws_s3_bucket_versioning" "frontend" {
 
 # S3 버킷 - 파일 업로드
 resource "aws_s3_bucket" "uploads" {
-  bucket = "${var.project_name}-${var.environment}-uploads"
+  bucket = "${var.project_name}-${var.environment}-files"
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-uploads"
+    Name        = "${var.project_name}-${var.environment}-files"
     Environment = var.environment
     Project     = var.project_name
     Purpose     = "File Uploads Storage"
@@ -123,5 +123,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
     }
   }
 }
+
 
 

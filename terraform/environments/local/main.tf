@@ -26,7 +26,8 @@ provider "aws" {
 }
 
 locals {
-  bucket_name = "${var.project_name}-local-uploads"
+  bucket_name                 = "${var.project_name}-local-files"
+  bucket_allowed_access_cidrs = var.trusted_operator_cidrs
 }
 
 resource "aws_s3_bucket" "local_uploads" {
@@ -77,6 +78,36 @@ resource "aws_s3_bucket_cors_configuration" "local_uploads" {
     expose_headers  = ["ETag", "Content-Type", "Content-Length"]
     max_age_seconds = 3600
   }
+}
+
+resource "aws_s3_bucket_policy" "local_uploads" {
+  bucket = aws_s3_bucket.local_uploads.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowOnlyWhitelistedIps"
+        Effect    = "Allow"
+        Principal = "*"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.local_uploads.arn,
+          "${aws_s3_bucket.local_uploads.arn}/*"
+        ]
+        Condition = {
+          IpAddress = {
+            "aws:SourceIp" = local.bucket_allowed_access_cidrs
+          }
+        }
+      }
+    ]
+  })
 }
 
 output "local_uploads_bucket_name" {
