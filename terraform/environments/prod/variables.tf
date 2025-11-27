@@ -111,6 +111,18 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "rds_publicly_accessible" {
+  description = "RDS 퍼블릭 접근 허용 여부"
+  type        = bool
+  default     = false
+}
+
+variable "rds_allowed_public_cidrs" {
+  description = "RDS 퍼블릭 접근 허용 CIDR 목록"
+  type        = list(string)
+  default     = []
+}
+
 # 애플리케이션 설정
 variable "server_port" {
   description = "애플리케이션 서버 포트"

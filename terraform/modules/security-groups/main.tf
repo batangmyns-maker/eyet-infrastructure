@@ -87,6 +87,18 @@ resource "aws_security_group" "rds" {
     cidr_blocks = [var.vpc_cidr]
   }
 
+  # PostgreSQL (선택적 퍼블릭 접근 - IP 화이트리스트)
+  dynamic "ingress" {
+    for_each = var.allowed_rds_public_cidrs
+    content {
+      description = "PostgreSQL from allowed public CIDR"
+      from_port   = 5432
+      to_port     = 5432
+      protocol    = "tcp"
+      cidr_blocks = [ingress.value]
+    }
+  }
+
   # Outbound - 모든 트래픽 허용
   egress {
     description = "Allow all outbound traffic"

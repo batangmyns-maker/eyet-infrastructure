@@ -82,7 +82,7 @@ resource "aws_db_instance" "main" {
   # 네트워크 설정
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [var.security_group_id]
-  publicly_accessible    = false
+  publicly_accessible    = var.publicly_accessible
 
   # 백업 설정
   backup_retention_period = var.backup_retention_period

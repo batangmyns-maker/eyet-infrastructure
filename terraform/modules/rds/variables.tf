@@ -90,4 +90,10 @@ variable "performance_insights_enabled" {
   default     = false
 }
 
+variable "publicly_accessible" {
+  description = "RDS 퍼블릭 접근 허용 여부"
+  type        = bool
+  default     = false
+}
+
 

@@ -30,4 +30,10 @@ variable "vpc_cidr" {
   type        = string
 }
 
+variable "allowed_rds_public_cidrs" {
+  description = "RDS 퍼블릭 접근을 허용할 CIDR 목록 (없으면 빈 배열)"
+  type        = list(string)
+  default     = []
+}
+
 

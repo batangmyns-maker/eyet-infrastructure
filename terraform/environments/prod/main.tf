@@ -66,6 +66,7 @@ module "security_groups" {
   vpc_cidr          = var.vpc_cidr
   app_port          = var.server_port
   allowed_ssh_cidrs = var.allowed_ssh_cidrs
+  allowed_rds_public_cidrs = var.rds_allowed_public_cidrs
 }
 
 # ============================================================
@@ -84,6 +85,7 @@ module "rds" {
   database_name                = var.db_name
   master_username              = var.db_username
   master_password              = var.db_password
+  publicly_accessible          = var.rds_publicly_accessible
   backup_retention_period      = 30                # 운영 안전: 30일
   multi_az                     = false             # 비용 절감: Single-AZ
   deletion_protection          = true              # 운영 환경: 삭제 방지 활성화
