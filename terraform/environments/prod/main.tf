@@ -78,7 +78,7 @@ module "rds" {
 
   project_name                 = var.project_name
   environment                  = var.environment
-  private_subnet_ids           = module.vpc.private_subnet_ids
+  subnet_ids                   = module.vpc.public_subnet_ids
   security_group_id            = module.security_groups.rds_security_group_id
   instance_class               = var.rds_instance_class
   allocated_storage            = var.rds_allocated_storage

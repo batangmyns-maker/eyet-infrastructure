@@ -8,8 +8,8 @@ variable "environment" {
   type        = string
 }
 
-variable "private_subnet_ids" {
-  description = "Private 서브넷 ID 목록"
+variable "subnet_ids" {
+  description = "RDS가 배치될 서브넷 ID 목록"
   type        = list(string)
 }
 

@@ -77,7 +77,7 @@ variable "ec2_ami_id" {
 variable "allowed_ssh_cidrs" {
   description = "SSH 접근 허용 CIDR (Session Manager 사용 시 빈 배열)"
   type        = list(string)
-  default     = []  # Session Manager 사용으로 SSH 비활성화
+  default     = ["112.222.28.115/32"]
 }
 
 # RDS 설정
@@ -114,13 +114,13 @@ variable "db_password" {
 variable "rds_publicly_accessible" {
   description = "RDS 퍼블릭 접근 허용 여부"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "rds_allowed_public_cidrs" {
   description = "RDS 퍼블릭 접근 허용 CIDR 목록"
   type        = list(string)
-  default     = []
+  default     = ["112.222.28.115/32"]
 }
 
 # 애플리케이션 설정
