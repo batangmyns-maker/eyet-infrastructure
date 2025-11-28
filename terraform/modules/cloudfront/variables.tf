@@ -82,9 +82,3 @@ variable "api_allowed_origins" {
   type        = list(string)
   default     = ["*"]
 }
-
-variable "enable_unified_distribution" {
-  description = "예시 unified distribution 리소스를 생성할지 여부 (기본 비활성화)"
-  type        = bool
-  default     = false
-}

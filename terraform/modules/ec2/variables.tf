@@ -50,9 +50,8 @@ variable "uploads_bucket_name" {
 }
 
 variable "aws_region" {
-  description = "AWS 리전"
+  description = "AWS 리전 (provider region과 동일)"
   type        = string
-  default     = "ap-northeast-2"
 }
 
 # 데이터베이스 설정
