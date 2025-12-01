@@ -1,4 +1,21 @@
-# S3 버킷 - 프론트엔드 (사용자)
+# ============================================================
+# Uploads 버킷
+# ============================================================
+resource "aws_s3_bucket" "uploads" {
+  bucket = "${var.project_name}-${var.environment}-files"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-files"
+    Environment = var.environment
+    Project     = var.project_name
+    Purpose     = "File Uploads Storage"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# ============================================================
+# Frontend 버킷
+# ============================================================
 resource "aws_s3_bucket" "frontend" {
   bucket = "${var.project_name}-${var.environment}-frontend"
 
@@ -22,6 +39,20 @@ resource "aws_s3_bucket_website_configuration" "frontend" {
   }
 }
 
+# ============================================================
+# 공통 설정
+# ============================================================
+
+# Public Access Block
+resource "aws_s3_bucket_public_access_block" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_s3_bucket_public_access_block" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
@@ -29,6 +60,15 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# Versioning
+resource "aws_s3_bucket_versioning" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
 }
 
 resource "aws_s3_bucket_versioning" "frontend" {
@@ -39,39 +79,41 @@ resource "aws_s3_bucket_versioning" "frontend" {
   }
 }
 
-# S3 버킷 - 파일 업로드
-resource "aws_s3_bucket" "uploads" {
-  bucket = "${var.project_name}-${var.environment}-files"
+# Encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
 
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-files"
-    Environment = var.environment
-    Project     = var.project_name
-    Purpose     = "File Uploads Storage"
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "uploads" {
-  bucket = aws_s3_bucket.uploads.id
+resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_versioning" "uploads" {
-  bucket = aws_s3_bucket.uploads.id
-
-  versioning_configuration {
-    status = "Enabled"
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
   }
 }
 
-# S3 버킷 정책은 CloudFront 생성 후 main.tf에서 별도로 적용
-# (순환 의존성 해결을 위해 분리)
+# CORS Configuration
+resource "aws_s3_bucket_cors_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
 
-# S3 버킷 - 라이프사이클 정책 (업로드 - 비용 최적화)
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "PUT", "POST", "DELETE", "HEAD"]
+    allowed_origins = var.cors_allowed_origins
+    expose_headers  = ["ETag", "Content-Type", "Content-Length"]
+    max_age_seconds = 3600
+  }
+}
+
+# Lifecycle Configuration (업로드 버킷 - 비용 최적화)
 resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
   bucket = aws_s3_bucket.uploads.id
 
@@ -103,26 +145,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
   }
 }
 
-# S3 버킷 - 암호화 (모든 버킷)
-resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
-  bucket = aws_s3_bucket.frontend.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
-  bucket = aws_s3_bucket.uploads.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-
-
+# ============================================================
+# Bucket Policy
+# ============================================================
+# 버킷 정책은 main.tf에서 별도로 관리 (순환 의존성 해결)
+# CloudFront/EC2 생성 후 main.tf에서 정책 적용

@@ -12,6 +12,7 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+tfplan-*
 # terraform.tfvars는 Git에서 무시 (민감한 정보만 포함)
 # 비민감한 정보는 variables.tf의 기본값으로 관리
 

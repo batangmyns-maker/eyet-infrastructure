@@ -8,6 +8,9 @@ terraform {
     }
   }
 
+  # Backend 설정 (S3)
+  # 기본값: prod 환경
+  # 다른 환경 사용 시: terraform init -backend-config="key=test/terraform.tfstate" 등으로 override
   backend "s3" {
     bucket         = "bt-portal-terraform-state"
     key            = "prod/terraform.tfstate"
@@ -43,11 +46,12 @@ provider "aws" {
 }
 
 # ============================================================
-# 1단계: 기본 인프라 (VPC, Security Groups)
+# 모든 환경 리소스
 # ============================================================
 
+# 1단계: 기본 인프라 (VPC, Security Groups)
 module "vpc" {
-  source = "../../modules/vpc"
+  source = "./modules/vpc"
 
   project_name         = var.project_name
   environment          = var.environment
@@ -58,23 +62,20 @@ module "vpc" {
 }
 
 module "security_groups" {
-  source = "../../modules/security-groups"
+  source = "./modules/security-groups"
 
-  project_name      = var.project_name
-  environment       = var.environment
-  vpc_id            = module.vpc.vpc_id
-  vpc_cidr          = var.vpc_cidr
-  app_port          = var.server_port
-  allowed_ssh_cidrs = var.trusted_operator_cidrs
+  project_name          = var.project_name
+  environment           = var.environment
+  vpc_id                = module.vpc.vpc_id
+  vpc_cidr              = var.vpc_cidr
+  app_port              = var.server_port
+  allowed_ssh_cidrs     = var.trusted_operator_cidrs
   allowed_rds_public_cidrs = var.trusted_operator_cidrs
 }
 
-# ============================================================
 # 2단계: 데이터베이스 및 시크릿
-# ============================================================
-
 module "rds" {
-  source = "../../modules/rds"
+  source = "./modules/rds"
 
   project_name                 = var.project_name
   environment                  = var.environment
@@ -86,16 +87,16 @@ module "rds" {
   master_username              = var.db_username
   master_password              = var.db_password
   publicly_accessible          = var.rds_publicly_accessible
-  backup_retention_period      = 30                # 운영 안전: 30일
-  multi_az                     = false             # 비용 절감: Single-AZ
-  deletion_protection          = true              # 운영 환경: 삭제 방지 활성화
-  skip_final_snapshot          = false             # 운영 환경: 최종 스냅샷 생성
-  performance_insights_enabled = true              # 운영 환경: Performance Insights 활성화
-  monitoring_role_arn          = null              # Enhanced Monitoring 비활성화 (IAM Role 별도 생성 필요)
+  backup_retention_period      = 30
+  multi_az                     = false
+  deletion_protection          = true
+  skip_final_snapshot          = false
+  performance_insights_enabled  = true
+  monitoring_role_arn          = null
 }
 
 module "secrets_manager" {
-  source = "../../modules/secrets-manager"
+  source = "./modules/secrets-manager"
 
   project_name    = var.project_name
   environment     = var.environment
@@ -110,25 +111,126 @@ module "secrets_manager" {
   depends_on = [module.rds]
 }
 
-# ============================================================
-# 3단계: S3 버킷
-# ============================================================
-
+# 3단계: S3 버킷 (모든 환경)
+# 순환 의존성 해결: S3 버킷은 먼저 생성, 정책은 CloudFront/EC2 생성 후 별도로 적용
 module "s3" {
-  source = "../../modules/s3"
+  source = "./modules/s3"
 
   project_name         = var.project_name
   environment          = var.environment
   cors_allowed_origins = var.cors_allowed_origins
+  trusted_operator_cidrs = var.trusted_operator_cidrs
+  
+  # Prod 환경에서는 초기에는 빈 값 (정책은 나중에 별도로 적용)
+  cloudfront_frontend_distribution_arn = ""
+  cloudfront_uploads_distribution_arn  = ""
+  ec2_role_arn                         = ""
 }
 
 # ============================================================
-# 4단계: ACM 인증서 (커스텀 도메인 사용 시에만)
+# Legacy Local 버킷 관리 (환경 변수와 무관한 특수 케이스)
 # ============================================================
+# 주의: 이 버킷은 environment 변수와 무관하며, legacy 버킷입니다.
+# test 환경 추가 시에도 이 버킷은 그대로 유지됩니다.
+# import 필요: terraform import aws_s3_bucket.local_files bt-portal-local-files
+resource "aws_s3_bucket" "local_files" {
+  bucket = "bt-portal-local-files"
 
+  tags = {
+    Name        = "bt-portal-local-files"
+    Environment = "local"
+    Project     = var.project_name
+    Purpose     = "Local File Upload Testing"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# Versioning (기존 설정: Enabled)
+# terraform import aws_s3_bucket_versioning.local_files bt-portal-local-files
+resource "aws_s3_bucket_versioning" "local_files" {
+  bucket = aws_s3_bucket.local_files.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Encryption (기존 설정: AES256)
+# terraform import aws_s3_bucket_server_side_encryption_configuration.local_files bt-portal-local-files
+resource "aws_s3_bucket_server_side_encryption_configuration" "local_files" {
+  bucket = aws_s3_bucket.local_files.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Public Access Block (기존 설정)
+# terraform import aws_s3_bucket_public_access_block.local_files bt-portal-local-files
+resource "aws_s3_bucket_public_access_block" "local_files" {
+  bucket = aws_s3_bucket.local_files.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# CORS Configuration (기존 설정: localhost:3000, 127.0.0.1:3000)
+# terraform import aws_s3_bucket_cors_configuration.local_files bt-portal-local-files
+resource "aws_s3_bucket_cors_configuration" "local_files" {
+  bucket = aws_s3_bucket.local_files.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["POST", "GET", "HEAD", "DELETE", "PUT"]
+    allowed_origins = [
+      "http://127.0.0.1:3000",
+      "http://localhost:3000"
+    ]
+    expose_headers  = ["ETag", "Content-Type", "Content-Length"]
+    max_age_seconds = 3600
+  }
+}
+
+# Bucket Policy (기존 설정: IP 기반 접근 제어)
+# terraform import aws_s3_bucket_policy.local_files bt-portal-local-files
+resource "aws_s3_bucket_policy" "local_files" {
+  bucket = aws_s3_bucket.local_files.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowOnlyWhitelistedIps"
+        Effect = "Allow"
+        Principal = "*"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.local_files.arn,
+          "${aws_s3_bucket.local_files.arn}/*"
+        ]
+        Condition = {
+          IpAddress = {
+            "aws:SourceIp" = ["112.222.28.115/32"]
+          }
+        }
+      }
+    ]
+  })
+}
+
+# 4단계: ACM 인증서 (커스텀 도메인 사용 시에만)
 module "acm" {
   count  = var.use_custom_domain ? 1 : 0
-  source = "../../modules/acm"
+  source = "./modules/acm"
 
   providers = {
     aws.us_east_1 = aws.us_east_1
@@ -144,11 +246,7 @@ module "acm" {
   ]
 }
 
-# ============================================================
 # 5단계: Route53 (커스텀 도메인 사용 시에만)
-# ============================================================
-
-# Route53 호스팅 영역
 resource "aws_route53_zone" "main" {
   count = var.use_custom_domain ? 1 : 0
   name  = var.domain_name
@@ -160,7 +258,6 @@ resource "aws_route53_zone" "main" {
   }
 }
 
-# ACM 인증서 검증용 CNAME 레코드
 resource "aws_route53_record" "acm_validation" {
   for_each = var.use_custom_domain ? {
     for dvo in module.acm[0].certificate_domain_validation_options : dvo.domain_name => {
@@ -178,7 +275,6 @@ resource "aws_route53_record" "acm_validation" {
   zone_id         = aws_route53_zone.main[0].zone_id
 }
 
-# ACM 인증서 검증 대기
 resource "aws_acm_certificate_validation" "main" {
   count                   = var.use_custom_domain ? 1 : 0
   provider                = aws.us_east_1
@@ -190,12 +286,9 @@ resource "aws_acm_certificate_validation" "main" {
   }
 }
 
-# ============================================================
 # 6단계: EC2 인스턴스
-# ============================================================
-
 module "ec2" {
-  source = "../../modules/ec2"
+  source = "./modules/ec2"
 
   project_name        = var.project_name
   environment         = var.environment
@@ -204,7 +297,7 @@ module "ec2" {
   ami_id              = var.ec2_ami_id
   public_subnet_ids   = module.vpc.public_subnet_ids
   security_group_id   = module.security_groups.ec2_security_group_id
-  root_volume_size    = 50 # 운영 환경: 더 큰 스토리지
+  root_volume_size    = 50
   uploads_bucket_name = module.s3.uploads_bucket_id
   aws_region          = var.aws_region
 
@@ -216,7 +309,6 @@ module "ec2" {
   server_port         = var.server_port
   cors_allowed_origin = var.use_custom_domain ? "https://www.${var.domain_name}" : "*"
 
-  # Secrets Manager 연동
   secret_arns                = module.secrets_manager.all_secret_arns
   db_credentials_secret_name = module.secrets_manager.db_credentials_secret_name
   jwt_secret_name            = module.secrets_manager.jwt_secret_name
@@ -225,12 +317,9 @@ module "ec2" {
   depends_on = [module.rds, module.secrets_manager]
 }
 
-# ============================================================
 # 7단계: CloudFront
-# ============================================================
-
 module "cloudfront" {
-  source = "../../modules/cloudfront"
+  source = "./modules/cloudfront"
 
   project_name                = var.project_name
   environment                 = var.environment
@@ -240,7 +329,6 @@ module "cloudfront" {
   ec2_public_dns              = module.ec2.instance_public_dns
   backend_port                = var.cloudfront_backend_port
 
-  # 커스텀 도메인 설정 (use_custom_domain이 true일 때만 사용)
   frontend_domain     = var.use_custom_domain ? "www.${var.domain_name}" : ""
   api_domain          = var.use_custom_domain ? "api.${var.domain_name}" : ""
   cdn_domain          = var.use_custom_domain ? "cdn.${var.domain_name}" : ""
@@ -248,20 +336,16 @@ module "cloudfront" {
   acm_certificate_arn = var.use_custom_domain ? aws_acm_certificate_validation.main[0].certificate_arn : null
   api_allowed_origins  = var.cors_allowed_origins
 
-  price_class = "PriceClass_200" # 아시아, 유럽, 북미
+  price_class = "PriceClass_200"
 
   depends_on = [module.ec2]
 }
 
-# ============================================================
 # 8단계: Route53 레코드 (커스텀 도메인 사용 시에만)
-# ============================================================
-
 locals {
-  cloudfront_hosted_zone_id = "Z2FDTNDATAQYW2" # CloudFront 전역 호스팅 영역 ID
+  cloudfront_hosted_zone_id = "Z2FDTNDATAQYW2"
 }
 
-# A 레코드 - 프론트엔드 (www)
 resource "aws_route53_record" "frontend" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
@@ -277,7 +361,6 @@ resource "aws_route53_record" "frontend" {
   depends_on = [module.cloudfront]
 }
 
-# AAAA 레코드 - 프론트엔드 (IPv6)
 resource "aws_route53_record" "frontend_ipv6" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
@@ -293,7 +376,6 @@ resource "aws_route53_record" "frontend_ipv6" {
   depends_on = [module.cloudfront]
 }
 
-# A 레코드 - 루트 도메인
 resource "aws_route53_record" "root" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
@@ -309,7 +391,6 @@ resource "aws_route53_record" "root" {
   depends_on = [module.cloudfront]
 }
 
-# AAAA 레코드 - 루트 도메인 (IPv6)
 resource "aws_route53_record" "root_ipv6" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
@@ -325,7 +406,6 @@ resource "aws_route53_record" "root_ipv6" {
   depends_on = [module.cloudfront]
 }
 
-# A 레코드 - API
 resource "aws_route53_record" "api" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
@@ -341,7 +421,6 @@ resource "aws_route53_record" "api" {
   depends_on = [module.cloudfront]
 }
 
-# AAAA 레코드 - API (IPv6)
 resource "aws_route53_record" "api_ipv6" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
@@ -357,7 +436,6 @@ resource "aws_route53_record" "api_ipv6" {
   depends_on = [module.cloudfront]
 }
 
-# A 레코드 - CDN
 resource "aws_route53_record" "cdn" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
@@ -373,7 +451,6 @@ resource "aws_route53_record" "cdn" {
   depends_on = [module.cloudfront]
 }
 
-# AAAA 레코드 - CDN (IPv6)
 resource "aws_route53_record" "cdn_ipv6" {
   count   = var.use_custom_domain ? 1 : 0
   zone_id = aws_route53_zone.main[0].zone_id
@@ -389,11 +466,8 @@ resource "aws_route53_record" "cdn_ipv6" {
   depends_on = [module.cloudfront]
 }
 
-# ============================================================
-# 9단계: S3 버킷 정책 (CloudFront 생성 후)
-# ============================================================
-
-# S3 버킷 정책 - CloudFront OAC용 (프론트엔드)
+# 9단계: S3 버킷 정책 (CloudFront/EC2 생성 후)
+# 순환 의존성 해결: S3 버킷 정책을 별도로 관리
 resource "aws_s3_bucket_policy" "frontend" {
   bucket = module.s3.frontend_bucket_id
 
@@ -420,7 +494,6 @@ resource "aws_s3_bucket_policy" "frontend" {
   depends_on = [module.cloudfront]
 }
 
-# S3 버킷 정책 - CloudFront OAC용 (업로드)
 resource "aws_s3_bucket_policy" "uploads" {
   bucket = module.s3.uploads_bucket_id
 
@@ -485,5 +558,6 @@ resource "aws_s3_bucket_policy" "uploads" {
     )
   })
 
-  depends_on = [module.cloudfront]
+  depends_on = [module.cloudfront, module.ec2]
 }
+

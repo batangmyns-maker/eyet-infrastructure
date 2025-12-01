@@ -1,3 +1,7 @@
+# ============================================================
+# 인프라 출력
+# ============================================================
+
 # VPC 출력
 output "vpc_id" {
   description = "VPC ID"
@@ -39,7 +43,7 @@ output "s3_uploads_bucket" {
   value       = module.s3.uploads_bucket_id
 }
 
-# CloudFront 출력 (항상 출력 - 기본 도메인)
+# CloudFront 출력
 output "cloudfront_frontend_url" {
   description = "프론트엔드 CloudFront URL"
   value       = "https://${module.cloudfront.frontend_distribution_domain_name}"
@@ -97,3 +101,4 @@ output "deployment_info" {
     }
   }
 }
+

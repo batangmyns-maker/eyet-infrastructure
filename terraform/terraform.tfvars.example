@@ -1,0 +1,48 @@
+# ============================================================
+# 프로덕션 환경 변수 값 예시
+# 이 파일을 terraform.tfvars로 복사하여 실제 값을 입력하세요.
+# ============================================================
+
+# 기본 설정
+project_name = "bt-portal"
+environment  = "prod"
+aws_region   = "ap-northeast-2"
+
+# 도메인 설정
+use_custom_domain = true
+domain_name       = "eyet.kr"
+
+# VPC 설정
+vpc_cidr             = "10.1.0.0/16"
+availability_zones   = ["ap-northeast-2a", "ap-northeast-2c"]
+public_subnet_cidrs  = ["10.1.1.0/24", "10.1.2.0/24"]
+private_subnet_cidrs = ["10.1.11.0/24", "10.1.12.0/24"]
+trusted_operator_cidrs = ["112.222.28.115/32"]
+
+# EC2 설정
+ec2_instance_type = "t3.medium"
+ec2_key_name      = null  # Session Manager 사용
+ec2_ami_id        = "ami-04fcc2023d6e37430"
+
+# RDS 설정
+rds_instance_class      = "db.t3.small"
+rds_allocated_storage    = 50
+db_name                  = "btportal"
+db_username              = "postgres"
+db_password              = "CHANGE_ME_STRONG_PASSWORD_MIN_16_CHARS"  # 🔐 민감 정보
+rds_publicly_accessible  = true
+
+# 애플리케이션 설정
+server_port           = 18082
+cloudfront_backend_port = 80
+
+# 시크릿 키 (🔐 민감 정보)
+jwt_secret_key  = "CHANGE_ME_PRODUCTION_JWT_SECRET_KEY_AT_LEAST_64_CHARACTERS_RANDOM"
+toss_secret_key = "live_sk_..."  # 토스페이먼츠 라이브 키
+
+# CORS 설정
+cors_allowed_origins = [
+  "https://www.eyet.kr",
+  "https://eyet.kr"
+]
+

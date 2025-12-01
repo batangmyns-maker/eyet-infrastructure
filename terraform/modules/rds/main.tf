@@ -99,6 +99,10 @@ resource "aws_db_instance" "main" {
   skip_final_snapshot    = var.skip_final_snapshot
   final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.project_name}-${var.environment}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
 
+  lifecycle {
+    ignore_changes = [final_snapshot_identifier]
+  }
+
   # 파라미터 그룹
   parameter_group_name = aws_db_parameter_group.main.name
 
