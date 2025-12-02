@@ -186,19 +186,23 @@ resource "aws_instance" "main" {
 
   # User Data (초기 설정 스크립트)
   user_data = templatefile("${path.module}/user-data.sh", {
-    project_name                = var.project_name
-    environment                 = var.environment
-    db_host                     = var.db_host
-    db_port                     = var.db_port
-    db_name                     = var.db_name
-    db_username                 = var.db_username
-    db_credentials_secret_name  = var.db_credentials_secret_name
-    jwt_secret_name             = var.jwt_secret_name
-    toss_secret_name            = var.toss_secret_name
-    cors_allowed_origin         = var.cors_allowed_origin
-    server_port                 = var.server_port
-    uploads_bucket_name         = var.uploads_bucket_name
-    aws_region                  = var.aws_region
+    project_name                      = var.project_name
+    environment                       = var.environment
+    db_host                           = var.db_host
+    db_port                           = var.db_port
+    db_name                           = var.db_name
+    db_username                       = var.db_username
+    db_credentials_secret_name        = var.db_credentials_secret_name
+    jwt_secret_name                   = var.jwt_secret_name
+    toss_secret_name                  = var.toss_secret_name
+    cloudfront_private_key_secret_name = var.cloudfront_private_key_secret_name
+    cors_allowed_origin               = var.cors_allowed_origin
+    server_port                       = var.server_port
+    uploads_bucket_name               = var.uploads_bucket_name
+    private_files_bucket_name          = var.private_files_bucket_name
+    cloudfront_private_distribution_domain = var.cloudfront_private_distribution_domain
+    cloudfront_key_pair_id             = var.cloudfront_key_pair_id
+    aws_region                        = var.aws_region
   })
 
   # 메타데이터 옵션 (보안 강화)

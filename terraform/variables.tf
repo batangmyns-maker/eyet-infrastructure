@@ -187,3 +187,17 @@ variable "ses_dmarc_policy" {
   default     = "none"
 }
 
+# CloudFront Signed URL 설정
+variable "cloudfront_key_group_id" {
+  description = "CloudFront Key Group ID (Signed URL용) - AWS Console에서 Key Pair 생성 후 여기에 입력. 비공개 파일 다운로드에 필요"
+  type        = string
+  default     = null
+}
+
+variable "cloudfront_private_key" {
+  description = "CloudFront Signed URL 생성용 Private Key (PEM 형식) - 로컬에서 생성한 private_key.pem 파일 내용. Secrets Manager에 저장됨"
+  type        = string
+  sensitive   = true
+  default     = ""  # Key Pair 생성 전까지는 빈 값
+}
+

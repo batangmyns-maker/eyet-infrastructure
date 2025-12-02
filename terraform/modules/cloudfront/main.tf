@@ -44,6 +44,15 @@ resource "aws_cloudfront_origin_access_control" "uploads" {
   signing_protocol                  = "sigv4"
 }
 
+# Origin Access Control - 비공개 파일
+resource "aws_cloudfront_origin_access_control" "private_files" {
+  name                              = "${var.project_name}-${var.environment}-private-files-oac"
+  description                       = "OAC for Private Files S3 bucket"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 # CloudFront Distribution - 프론트엔드 (사용자)
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
@@ -185,12 +194,12 @@ resource "aws_cloudfront_distribution" "api" {
   }
 }
 
-# CloudFront Distribution - 파일/이미지
+# CloudFront Distribution - 파일/이미지 (공개용)
 resource "aws_cloudfront_distribution" "uploads" {
   enabled         = true
-  is_ipv6_enabled = true
-  comment         = "${var.project_name} ${var.environment} CDN"
-  price_class     = var.price_class
+  is_ipv6_enabled  = true
+  comment          = "${var.project_name} ${var.environment} CDN (Public)"
+  price_class      = var.price_class
 
   # 커스텀 도메인 (선택사항)
   aliases = var.use_custom_domain ? [var.cdn_domain] : []
@@ -234,8 +243,69 @@ resource "aws_cloudfront_distribution" "uploads" {
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-cdn"
+    Name        = "${var.project_name}-${var.environment}-cdn-public"
     Environment = var.environment
     Project     = var.project_name
+    Purpose     = "Public CDN"
+  }
+}
+
+# CloudFront Distribution - 비공개 파일 (결제 후 다운로드용)
+resource "aws_cloudfront_distribution" "private_uploads" {
+  enabled         = true
+  is_ipv6_enabled = true
+  comment         = "${var.project_name} ${var.environment} Private CDN (Signed URL Required)"
+  price_class     = var.price_class
+
+  # 커스텀 도메인 (선택사항)
+  aliases = var.use_custom_domain && var.private_cdn_domain != "" ? [var.private_cdn_domain] : []
+
+  origin {
+    domain_name              = var.private_files_bucket_domain_name
+    origin_id                = "S3-Private-Files"
+    origin_access_control_id = aws_cloudfront_origin_access_control.private_files.id
+  }
+
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "S3-Private-Files"
+
+    # Signed URL을 위한 Trusted Key Groups 설정
+    # 주의: CloudFront Key Pair는 AWS Console에서 수동으로 생성 후 key_group_id를 변수로 전달해야 함
+    trusted_key_groups = var.cloudfront_key_group_id != null ? [var.cloudfront_key_group_id] : []
+
+    forwarded_values {
+      query_string = true  # Signed URL의 쿼리 파라미터를 전달하기 위해 true
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0  # 인증된 콘텐츠는 캐싱 최소화
+    max_ttl                = 0
+    compress               = true
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    acm_certificate_arn            = var.use_custom_domain ? var.acm_certificate_arn : null
+    ssl_support_method             = var.use_custom_domain ? "sni-only" : null
+    minimum_protocol_version       = var.use_custom_domain ? "TLSv1.2_2021" : null
+    cloudfront_default_certificate = var.use_custom_domain ? false : true
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-cdn-private"
+    Environment = var.environment
+    Project     = var.project_name
+    Purpose     = "Private CDN - Signed URL Required"
   }
 }

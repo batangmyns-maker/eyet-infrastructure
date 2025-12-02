@@ -110,4 +110,27 @@ variable "toss_secret_name" {
   type        = string
 }
 
+variable "cloudfront_private_key_secret_name" {
+  description = "CloudFront Private Key 시크릿 이름"
+  type        = string
+  default     = ""
+}
+
+variable "private_files_bucket_name" {
+  description = "비공개 파일용 S3 버킷 이름"
+  type        = string
+}
+
+variable "cloudfront_private_distribution_domain" {
+  description = "비공개 CloudFront Distribution Domain Name"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_key_pair_id" {
+  description = "CloudFront Key Pair ID (Signed URL용)"
+  type        = string
+  default     = ""
+}
+
 

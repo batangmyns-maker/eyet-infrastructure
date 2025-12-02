@@ -43,4 +43,19 @@ output "uploads_distribution_domain_name" {
   value       = aws_cloudfront_distribution.uploads.domain_name
 }
 
+output "private_uploads_distribution_id" {
+  description = "비공개 업로드 CloudFront Distribution ID"
+  value       = aws_cloudfront_distribution.private_uploads.id
+}
+
+output "private_uploads_distribution_arn" {
+  description = "비공개 업로드 CloudFront Distribution ARN"
+  value       = aws_cloudfront_distribution.private_uploads.arn
+}
+
+output "private_uploads_distribution_domain_name" {
+  description = "비공개 업로드 CloudFront Domain Name"
+  value       = aws_cloudfront_distribution.private_uploads.domain_name
+}
+
 

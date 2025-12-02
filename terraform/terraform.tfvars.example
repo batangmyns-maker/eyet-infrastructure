@@ -55,3 +55,17 @@ ses_enable_dmarc            = false  # DMARC 활성화 여부
 ses_dmarc_email             = ""  # DMARC 리포트 이메일 (ses_enable_dmarc가 true일 때 필요)
 ses_dmarc_policy            = "none"  # DMARC 정책: "none"(모니터링만), "quarantine"(스팸함), "reject"(차단)
 
+# CloudFront Signed URL 설정 (비공개 파일 다운로드용)
+# 주의: CloudFront Key Pair는 AWS Console에서 수동으로 생성해야 합니다.
+# 1. 로컬에서 키 생성:
+#    openssl genrsa -out private_key.pem 2048
+#    openssl rsa -pubout -in private_key.pem -out public_key.pem
+# 2. AWS Console > CloudFront > Public Keys > Create public key
+#    - public_key.pem 파일 내용을 복사하여 입력
+# 3. AWS Console > CloudFront > Key Groups > Create key group
+#    - 위에서 생성한 Public Key 선택
+#    - 생성된 Key Group ID를 cloudfront_key_group_id에 입력
+# 4. private_key.pem 파일 내용을 cloudfront_private_key에 입력 (Secrets Manager에 저장됨)
+cloudfront_key_group_id = null  # 예: "k1234567890abc" (Key Group ID)
+cloudfront_private_key  = ""   # private_key.pem 파일의 전체 내용 (PEM 형식)
+

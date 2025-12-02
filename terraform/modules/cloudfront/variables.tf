@@ -20,7 +20,12 @@ variable "frontend_bucket_domain_name" {
 }
 
 variable "uploads_bucket_domain_name" {
-  description = "업로드 S3 버킷 도메인"
+  description = "업로드 S3 버킷 도메인 (공개 파일용)"
+  type        = string
+}
+
+variable "private_files_bucket_domain_name" {
+  description = "비공개 파일 S3 버킷 도메인 (결제 후 다운로드용)"
   type        = string
 }
 
@@ -81,4 +86,16 @@ variable "api_allowed_origins" {
   description = "API CloudFront에서 허용할 Origin 목록 (CORS)"
   type        = list(string)
   default     = ["*"]
+}
+
+variable "private_cdn_domain" {
+  description = "비공개 CDN 도메인 (private-cdn.example.com) - Signed URL이 필요한 파일용"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_key_group_id" {
+  description = "CloudFront Key Group ID (Signed URL용) - AWS Console에서 Key Pair 생성 후 여기에 입력"
+  type        = string
+  default     = null
 }

@@ -57,6 +57,15 @@ SERVER_PORT=${server_port}
 
 # Timezone
 TZ=Asia/Seoul
+
+# S3 Buckets
+PUBLIC_FILES_BUCKET=${uploads_bucket_name}
+PRIVATE_FILES_BUCKET=${private_files_bucket_name}
+
+# CloudFront Configuration (Signed URL용)
+CLOUDFRONT_PRIVATE_DISTRIBUTION_DOMAIN=${cloudfront_private_distribution_domain}
+CLOUDFRONT_KEY_PAIR_ID=${cloudfront_key_pair_id}
+CLOUDFRONT_PRIVATE_KEY_SECRET_NAME=${cloudfront_private_key_secret_name}
 EOF
 
 sudo chown ec2-user:ec2-user /app/.env.minimal

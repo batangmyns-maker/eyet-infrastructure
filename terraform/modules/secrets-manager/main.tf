@@ -69,6 +69,25 @@ resource "aws_secretsmanager_secret_version" "toss_secret" {
   })
 }
 
+# 4. CloudFront Private Key (Signed URL 생성용)
+resource "aws_secretsmanager_secret" "cloudfront_private_key" {
+  name        = "/${var.project_name}/${var.environment}/cloudfront-private-key"
+  description = "CloudFront Signed URL 생성용 Private Key (PEM 형식)"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-cloudfront-private-key"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "cloudfront_private_key" {
+  secret_id = aws_secretsmanager_secret.cloudfront_private_key.id
+  secret_string = jsonencode({
+    "cloudfront-private-key" = var.cloudfront_private_key
+  })
+}
+
 # 선택사항: RDS 비밀번호 자동 로테이션 설정
 # 참고: 로테이션 Lambda 함수가 필요하며, 추가 설정이 필요합니다.
 # 운영 환경에서는 아래 주석을 해제하여 30일마다 자동 로테이션 활성화를 권장합니다.

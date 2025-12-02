@@ -98,15 +98,16 @@ module "rds" {
 module "secrets_manager" {
   source = "./modules/secrets-manager"
 
-  project_name    = var.project_name
-  environment     = var.environment
-  db_host         = module.rds.db_instance_address
-  db_port         = module.rds.db_instance_port
-  db_name         = var.db_name
-  db_username     = var.db_username
-  db_password     = var.db_password
-  jwt_secret_key  = var.jwt_secret_key
-  toss_secret_key = var.toss_secret_key
+  project_name            = var.project_name
+  environment             = var.environment
+  db_host                 = module.rds.db_instance_address
+  db_port                 = module.rds.db_instance_port
+  db_name                 = var.db_name
+  db_username             = var.db_username
+  db_password             = var.db_password
+  jwt_secret_key          = var.jwt_secret_key
+  toss_secret_key         = var.toss_secret_key
+  cloudfront_private_key   = var.cloudfront_private_key
 
   depends_on = [module.rds]
 }
@@ -340,10 +341,15 @@ module "ec2" {
   server_port         = var.server_port
   cors_allowed_origin = var.use_custom_domain ? "https://www.${var.domain_name}" : "*"
 
-  secret_arns                = module.secrets_manager.all_secret_arns
-  db_credentials_secret_name = module.secrets_manager.db_credentials_secret_name
-  jwt_secret_name            = module.secrets_manager.jwt_secret_name
-  toss_secret_name           = module.secrets_manager.toss_secret_name
+  secret_arns                         = module.secrets_manager.all_secret_arns
+  db_credentials_secret_name          = module.secrets_manager.db_credentials_secret_name
+  jwt_secret_name                     = module.secrets_manager.jwt_secret_name
+  toss_secret_name                    = module.secrets_manager.toss_secret_name
+  cloudfront_private_key_secret_name  = module.secrets_manager.cloudfront_private_key_secret_name
+  private_files_bucket_name           = module.s3.private_files_bucket_id
+  # CloudFront 도메인은 커스텀 도메인 사용 시 직접 계산, 아니면 나중에 환경 변수로 설정
+  cloudfront_private_distribution_domain = var.use_custom_domain ? "private-cdn.${var.domain_name}" : ""
+  cloudfront_key_pair_id              = var.cloudfront_key_group_id
 
   depends_on = [module.rds, module.secrets_manager]
 }
@@ -352,24 +358,25 @@ module "ec2" {
 module "cloudfront" {
   source = "./modules/cloudfront"
 
-  project_name                = var.project_name
-  environment                 = var.environment
-  use_custom_domain           = var.use_custom_domain
-  frontend_bucket_domain_name = module.s3.frontend_bucket_domain_name
-  uploads_bucket_domain_name  = module.s3.uploads_bucket_domain_name
-  ec2_public_dns              = module.ec2.instance_public_dns
-  backend_port                = var.cloudfront_backend_port
+  project_name                     = var.project_name
+  environment                      = var.environment
+  use_custom_domain                = var.use_custom_domain
+  frontend_bucket_domain_name      = module.s3.frontend_bucket_domain_name
+  uploads_bucket_domain_name       = module.s3.uploads_bucket_domain_name
+  private_files_bucket_domain_name = module.s3.private_files_bucket_domain_name
+  ec2_public_dns                   = module.ec2.instance_public_dns
+  backend_port                     = var.cloudfront_backend_port
 
   frontend_domain     = var.use_custom_domain ? "www.${var.domain_name}" : ""
   api_domain          = var.use_custom_domain ? "api.${var.domain_name}" : ""
   cdn_domain          = var.use_custom_domain ? "cdn.${var.domain_name}" : ""
   root_domain         = var.use_custom_domain ? var.domain_name : ""
+  private_cdn_domain  = var.use_custom_domain ? "private-cdn.${var.domain_name}" : ""
   acm_certificate_arn = var.use_custom_domain ? aws_acm_certificate_validation.main[0].certificate_arn : null
   api_allowed_origins  = var.cors_allowed_origins
+  cloudfront_key_group_id = var.cloudfront_key_group_id
 
   price_class = "PriceClass_200"
-
-  depends_on = [module.ec2]
 }
 
 # 8단계: Route53 레코드 (커스텀 도메인 사용 시에만)
@@ -497,6 +504,36 @@ resource "aws_route53_record" "cdn_ipv6" {
   depends_on = [module.cloudfront]
 }
 
+resource "aws_route53_record" "private_cdn" {
+  count   = var.use_custom_domain ? 1 : 0
+  zone_id = aws_route53_zone.main[0].zone_id
+  name    = "private-cdn.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = module.cloudfront.private_uploads_distribution_domain_name
+    zone_id                = local.cloudfront_hosted_zone_id
+    evaluate_target_health = false
+  }
+
+  depends_on = [module.cloudfront]
+}
+
+resource "aws_route53_record" "private_cdn_ipv6" {
+  count   = var.use_custom_domain ? 1 : 0
+  zone_id = aws_route53_zone.main[0].zone_id
+  name    = "private-cdn.${var.domain_name}"
+  type    = "AAAA"
+
+  alias {
+    name                   = module.cloudfront.private_uploads_distribution_domain_name
+    zone_id                = local.cloudfront_hosted_zone_id
+    evaluate_target_health = false
+  }
+
+  depends_on = [module.cloudfront]
+}
+
 # 9단계: S3 버킷 정책 (CloudFront/EC2 생성 후)
 # 순환 의존성 해결: S3 버킷 정책을 별도로 관리
 resource "aws_s3_bucket_policy" "frontend" {
@@ -587,6 +624,50 @@ resource "aws_s3_bucket_policy" "uploads" {
         }
       ] : []
     )
+  })
+
+  depends_on = [module.cloudfront, module.ec2]
+}
+
+# 비공개 파일 버킷 정책 (CloudFront/EC2 생성 후)
+resource "aws_s3_bucket_policy" "private_files" {
+  bucket = module.s3.private_files_bucket_id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowPrivateCloudFrontServicePrincipal"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:GetObject"
+        Resource = "${module.s3.private_files_bucket_arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = module.cloudfront.private_uploads_distribution_arn
+          }
+        }
+      },
+      {
+        Sid    = "AllowBackendEc2RoleAccess"
+        Effect = "Allow"
+        Principal = {
+          AWS = module.ec2.iam_role_arn
+        }
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          module.s3.private_files_bucket_arn,
+          "${module.s3.private_files_bucket_arn}/*"
+        ]
+      }
+    ]
   })
 
   depends_on = [module.cloudfront, module.ec2]

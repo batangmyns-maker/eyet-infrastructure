@@ -48,3 +48,10 @@ variable "toss_secret_key" {
   sensitive   = true
 }
 
+variable "cloudfront_private_key" {
+  description = "CloudFront Signed URL 생성용 Private Key (PEM 형식) - 선택사항"
+  type        = string
+  sensitive   = true
+  default     = ""  # Key Pair 생성 전까지는 빈 값
+}
+
