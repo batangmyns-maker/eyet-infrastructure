@@ -258,6 +258,37 @@ resource "aws_route53_zone" "main" {
   }
 }
 
+# 5-1단계: SES (이메일 발송) - 메인 도메인 또는 이메일 주소 인증
+module "ses" {
+  count  = var.use_custom_domain || length(var.ses_verified_email_addresses) > 0 ? 1 : 0
+  source = "./modules/ses"
+
+  project_name             = var.project_name
+  environment              = var.environment
+  domain_name              = var.use_custom_domain ? var.domain_name : ""
+  route53_zone_id          = var.use_custom_domain ? aws_route53_zone.main[0].zone_id : ""
+  verified_email_addresses = var.ses_verified_email_addresses
+  enable_dmarc             = var.ses_enable_dmarc
+  dmarc_email              = var.ses_dmarc_email
+  dmarc_policy             = var.ses_dmarc_policy
+
+  depends_on = [aws_route53_zone.main]
+}
+
+# 5-2단계: SES - 추가 도메인 인증 (여러 도메인 사용 시)
+module "ses_additional_domains" {
+  for_each = toset(var.ses_additional_domains)
+  source   = "./modules/ses"
+
+  project_name             = var.project_name
+  environment              = var.environment
+  domain_name              = each.value
+  route53_zone_id          = ""  # 추가 도메인은 Route53 레코드 수동 설정 필요
+  verified_email_addresses = []
+  enable_dmarc             = false
+  dmarc_email              = ""
+}
+
 resource "aws_route53_record" "acm_validation" {
   for_each = var.use_custom_domain ? {
     for dvo in module.acm[0].certificate_domain_validation_options : dvo.domain_name => {

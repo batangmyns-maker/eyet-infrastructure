@@ -87,6 +87,17 @@ output "acm_certificate_arn" {
   value       = var.use_custom_domain ? module.acm[0].certificate_arn : null
 }
 
+# SES 출력 (이메일 발송)
+output "ses_domain" {
+  description = "SES 도메인 (발신자로 사용 가능한 도메인, @도메인 형태로 사용)"
+  value       = var.use_custom_domain ? var.domain_name : ""
+}
+
+output "ses_verified_emails" {
+  description = "SES 인증된 이메일 주소 목록"
+  value       = length(module.ses) > 0 ? keys(module.ses[0].verified_email_addresses) : []
+}
+
 # 배포 정보
 output "deployment_info" {
   description = "배포 정보 요약"
@@ -98,6 +109,11 @@ output "deployment_info" {
       frontend = "https://${module.cloudfront.frontend_distribution_domain_name}"
       api      = "https://${module.cloudfront.api_distribution_domain_name}"
       cdn      = "https://${module.cloudfront.uploads_distribution_domain_name}"
+    }
+    ses = {
+      domain            = var.use_custom_domain && length(module.ses) > 0 ? var.domain_name : ""
+      verified_emails   = length(module.ses) > 0 ? keys(module.ses[0].verified_email_addresses) : []
+      aws_region        = var.aws_region
     }
   }
 }

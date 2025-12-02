@@ -101,6 +101,43 @@ resource "aws_iam_role_policy" "secrets_manager_access" {
   })
 }
 
+# IAM Policy for SES (이메일 발송 및 동적 인증)
+resource "aws_iam_role_policy" "ses_access" {
+  name = "${var.project_name}-${var.environment}-ses-access"
+  role = aws_iam_role.ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:GetIdentityVerificationAttributes",
+          "ses:GetIdentityDkimAttributes"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:VerifyEmailIdentity",
+          "ses:GetIdentityVerificationAttributes",
+          "ses:DeleteIdentity"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # IAM Policy for Session Manager (SSH 대신 사용)
 resource "aws_iam_role_policy_attachment" "ssm_managed_instance" {
   role       = aws_iam_role.ec2.name

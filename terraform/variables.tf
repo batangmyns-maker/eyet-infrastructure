@@ -156,3 +156,34 @@ variable "cors_allowed_origins" {
   # default 제거 - 각 환경에서 필수 입력
 }
 
+# SES 설정
+variable "ses_verified_email_addresses" {
+  description = "SES에서 인증할 이메일 주소 목록 (다른 도메인의 이메일 주소 포함 가능)"
+  type        = list(string)
+  default     = []
+}
+
+variable "ses_additional_domains" {
+  description = "추가로 인증할 도메인 목록 (여러 도메인 사용 시)"
+  type        = list(string)
+  default     = []
+}
+
+variable "ses_enable_dmarc" {
+  description = "DMARC 레코드 활성화 여부"
+  type        = bool
+  default     = false
+}
+
+variable "ses_dmarc_email" {
+  description = "DMARC 리포트를 받을 이메일 주소 (ses_enable_dmarc가 true일 때 필요)"
+  type        = string
+  default     = ""
+}
+
+variable "ses_dmarc_policy" {
+  description = "DMARC 정책 레벨 (none: 모니터링만, quarantine: 스팸함으로 이동, reject: 완전 차단)"
+  type        = string
+  default     = "none"
+}
+

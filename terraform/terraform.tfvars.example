@@ -46,3 +46,12 @@ cors_allowed_origins = [
   "https://eyet.kr"
 ]
 
+# SES 설정 (이메일 발송)
+ses_verified_email_addresses = []  # 다른 도메인의 이메일 주소를 추가하려면 여기에 입력
+# 예: ["support@other-domain.com", "info@another-domain.co.kr"]
+ses_additional_domains      = []  # 추가로 인증할 도메인 목록 (도메인 전체 사용 시)
+# 예: ["other-domain.com", "another-domain.co.kr"]
+ses_enable_dmarc            = false  # DMARC 활성화 여부
+ses_dmarc_email             = ""  # DMARC 리포트 이메일 (ses_enable_dmarc가 true일 때 필요)
+ses_dmarc_policy            = "none"  # DMARC 정책: "none"(모니터링만), "quarantine"(스팸함), "reject"(차단)
+
