@@ -349,7 +349,7 @@ module "ec2" {
   private_files_bucket_name           = module.s3.private_files_bucket_id
   # CloudFront 도메인은 커스텀 도메인 사용 시 직접 계산, 아니면 나중에 환경 변수로 설정
   cloudfront_private_distribution_domain = var.use_custom_domain ? "private-cdn.${var.domain_name}" : ""
-  cloudfront_key_pair_id              = var.cloudfront_key_group_id
+  cloudfront_key_pair_id              = var.cloudfront_key_pair_id
 
   depends_on = [module.rds, module.secrets_manager]
 }

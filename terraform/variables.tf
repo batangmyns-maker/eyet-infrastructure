@@ -194,6 +194,12 @@ variable "cloudfront_key_group_id" {
   default     = null
 }
 
+variable "cloudfront_key_pair_id" {
+  description = "CloudFront Public Key ID (Signed URL 생성에 사용) - AWS Console에서 Public Key 생성 시 할당된 ID"
+  type        = string
+  default     = null
+}
+
 variable "cloudfront_private_key" {
   description = "CloudFront Signed URL 생성용 Private Key (PEM 형식) - 로컬에서 생성한 private_key.pem 파일 내용. Secrets Manager에 저장됨"
   type        = string
