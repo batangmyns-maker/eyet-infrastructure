@@ -61,21 +61,12 @@ exports.handler = (event, context, callback) => {
     
     // IP 화이트리스트 체크
     if (!isIPWhitelisted(clientIP, whitelist)) {
-        // 화이트리스트에 없는 IP는 403 에러 반환
-        // CloudFront의 커스텀 에러 응답이 이를 처리하여 coming-soon.html을 표시
-        const response = {
-            status: '403',
-            statusDescription: 'Forbidden',
-            headers: {
-                'content-type': [{
-                    key: 'Content-Type',
-                    value: 'text/html'
-                }]
-            },
-            body: 'Access Denied'
-        };
+        // 화이트리스트에 없는 IP는 요청 URI를 coming-soon.html로 변경
+        // 이렇게 하면 CloudFront가 S3에서 coming-soon.html을 가져와서 반환
+        request.uri = ${jsonencode(ip_whitelist_error_page)};
+        request.querystring = ''; // 쿼리 스트링 제거
         
-        callback(null, response);
+        callback(null, request);
         return;
     }
     

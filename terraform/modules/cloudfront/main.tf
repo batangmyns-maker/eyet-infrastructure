@@ -21,7 +21,8 @@ terraform {
 # Lambda@Edge는 환경 변수를 지원하지 않으므로 IP 목록을 코드에 직접 포함
 locals {
   lambda_edge_code = var.enable_ip_whitelist ? templatefile("${path.module}/lambda-edge-template.js", {
-    ip_whitelist = length(var.trusted_operator_cidrs) > 0 ? join(",", [for ip in var.trusted_operator_cidrs : "'${replace(ip, "'", "\\'")}'"]) : ""
+    ip_whitelist            = length(var.trusted_operator_cidrs) > 0 ? join(",", [for ip in var.trusted_operator_cidrs : "'${replace(ip, "'", "\\'")}'"]) : ""
+    ip_whitelist_error_page = var.ip_whitelist_error_page
   }) : ""
 }
 
@@ -206,13 +207,8 @@ resource "aws_cloudfront_distribution" "frontend" {
     response_page_path    = "/index.html"
   }
 
-  # IP 화이트리스트에 없는 경우 403 에러를 커스텀 페이지로 표시
-  custom_error_response {
-    error_code            = 403
-    error_caching_min_ttl = 300
-    response_code         = 200
-    response_page_path    = var.ip_whitelist_error_page
-  }
+  # 주의: 403 에러 처리는 Lambda@Edge 함수에서 직접 URI를 변경하여 처리
+  # custom_error_response는 Lambda@Edge의 viewer-request 이벤트 이후에 작동하지 않음
 
   restrictions {
     geo_restriction {
