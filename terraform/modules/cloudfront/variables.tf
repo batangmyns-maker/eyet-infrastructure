@@ -99,3 +99,21 @@ variable "cloudfront_key_group_id" {
   type        = string
   default     = null
 }
+
+variable "trusted_operator_cidrs" {
+  description = "프론트엔드 접근 허용 IP 목록 (CIDR 형식). RDS 등에서 사용하는 화이트리스트와 동일"
+  type        = list(string)
+  default     = []
+}
+
+variable "enable_ip_whitelist" {
+  description = "IP 화이트리스트 기능 활성화 여부"
+  type        = bool
+  default     = false
+}
+
+variable "ip_whitelist_error_page" {
+  description = "화이트리스트에 없는 IP에게 보여줄 페이지 경로 (예: /coming-soon.html, /maintenance.html 등). HTML 파일 안에 이미지를 포함할 수 있습니다."
+  type        = string
+  default     = "/coming-soon.html"
+}

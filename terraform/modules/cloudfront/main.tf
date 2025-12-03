@@ -1,3 +1,102 @@
+terraform {
+  required_providers {
+    aws = {
+      source                = "hashicorp/aws"
+      version               = "~> 5.0"
+      configuration_aliases = [aws.us_east_1]
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
+    }
+  }
+}
+
+# Lambda@Edge 함수 - IP 화이트리스트 체크
+# 주의: Lambda@Edge는 us-east-1 리전에서만 생성 가능
+# Lambda@Edge는 환경 변수를 지원하지 않으므로 IP 목록을 코드에 직접 포함
+locals {
+  lambda_edge_code = var.enable_ip_whitelist ? templatefile("${path.module}/lambda-edge-template.js", {
+    ip_whitelist = length(var.trusted_operator_cidrs) > 0 ? join(",", [for ip in var.trusted_operator_cidrs : "'${replace(ip, "'", "\\'")}'"]) : ""
+  }) : ""
+}
+
+# Lambda@Edge는 handler가 "index.handler"이므로 zip 파일 안에 "index.js"가 있어야 함
+# 임시 디렉토리를 만들어서 index.js로 저장
+resource "local_file" "lambda_edge_index" {
+  count    = var.enable_ip_whitelist ? 1 : 0
+  filename = "${path.module}/lambda-temp/index.js"
+  content  = local.lambda_edge_code
+}
+
+data "archive_file" "lambda_edge_zip" {
+  count       = var.enable_ip_whitelist ? 1 : 0
+  type        = "zip"
+  source_dir  = "${path.module}/lambda-temp"
+  output_path = "${path.module}/lambda-edge-ip-whitelist.zip"
+  depends_on  = [local_file.lambda_edge_index]
+}
+
+resource "aws_iam_role" "lambda_edge" {
+  count    = var.enable_ip_whitelist ? 1 : 0
+  name     = "${var.project_name}-${var.environment}-lambda-edge-role"
+  provider = aws.us_east_1
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = [
+            "edgelambda.amazonaws.com",
+            "lambda.amazonaws.com"
+          ]
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-lambda-edge-role"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_edge_basic" {
+  count      = var.enable_ip_whitelist ? 1 : 0
+  role       = aws_iam_role.lambda_edge[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  provider   = aws.us_east_1
+}
+
+resource "aws_lambda_function" "ip_whitelist" {
+  count         = var.enable_ip_whitelist ? 1 : 0
+  filename      = data.archive_file.lambda_edge_zip[0].output_path
+  function_name = "${var.project_name}-${var.environment}-ip-whitelist"
+  role          = aws_iam_role.lambda_edge[0].arn
+  handler       = "index.handler"
+  runtime       = "nodejs18.x"
+  provider      = aws.us_east_1
+  publish       = true # Lambda@Edge는 버전이 필요하므로 publish = true 필수
+
+  source_code_hash = data.archive_file.lambda_edge_zip[0].output_base64sha256
+
+  # Lambda@Edge는 환경 변수를 지원하지 않으므로 제거
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-ip-whitelist"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
 # API 전용 CORS 헤더 정책
 resource "aws_cloudfront_response_headers_policy" "api_cors" {
   name    = "${var.project_name}-${var.environment}-api-cors"
@@ -75,6 +174,16 @@ resource "aws_cloudfront_distribution" "frontend" {
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-Frontend"
 
+    # Lambda@Edge 연결 (IP 화이트리스트 체크)
+    dynamic "lambda_function_association" {
+      for_each = var.enable_ip_whitelist ? [1] : []
+      content {
+        event_type   = "viewer-request"
+        lambda_arn   = aws_lambda_function.ip_whitelist[0].qualified_arn
+        include_body = false
+      }
+    }
+
     forwarded_values {
       query_string = false
       cookies {
@@ -97,11 +206,12 @@ resource "aws_cloudfront_distribution" "frontend" {
     response_page_path    = "/index.html"
   }
 
+  # IP 화이트리스트에 없는 경우 403 에러를 커스텀 페이지로 표시
   custom_error_response {
     error_code            = 403
     error_caching_min_ttl = 300
     response_code         = 200
-    response_page_path    = "/index.html"
+    response_page_path    = var.ip_whitelist_error_page
   }
 
   restrictions {

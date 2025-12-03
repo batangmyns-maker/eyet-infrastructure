@@ -358,6 +358,10 @@ module "ec2" {
 module "cloudfront" {
   source = "./modules/cloudfront"
 
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
+
   project_name                     = var.project_name
   environment                      = var.environment
   use_custom_domain                = var.use_custom_domain
@@ -375,6 +379,10 @@ module "cloudfront" {
   acm_certificate_arn = var.use_custom_domain ? aws_acm_certificate_validation.main[0].certificate_arn : null
   api_allowed_origins  = var.cors_allowed_origins
   cloudfront_key_group_id = var.cloudfront_key_group_id
+
+  # IP 화이트리스트 설정
+  trusted_operator_cidrs = var.trusted_operator_cidrs
+  enable_ip_whitelist     = true  # 필요시 변수로 제어 가능
 
   price_class = "PriceClass_200"
 }
