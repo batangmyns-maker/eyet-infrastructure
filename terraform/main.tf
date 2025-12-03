@@ -228,6 +228,138 @@ resource "aws_s3_bucket_policy" "local_files" {
   })
 }
 
+# ============================================================
+# Legacy Local Private Files 버킷 관리 (환경 변수와 무관한 특수 케이스)
+# ============================================================
+# 주의: 이 버킷은 environment 변수와 무관하며, legacy 버킷입니다.
+# test 환경 추가 시에도 이 버킷은 그대로 유지됩니다.
+# import 필요: terraform import aws_s3_bucket.local_private_files bt-portal-local-private-files
+resource "aws_s3_bucket" "local_private_files" {
+  bucket = "bt-portal-local-private-files"
+
+  tags = {
+    Name        = "bt-portal-local-private-files"
+    Environment = "local"
+    Project     = var.project_name
+    Purpose     = "Private File Storage - Signed URL Required"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# Versioning (기존 설정: Enabled)
+# terraform import aws_s3_bucket_versioning.local_private_files bt-portal-local-private-files
+resource "aws_s3_bucket_versioning" "local_private_files" {
+  bucket = aws_s3_bucket.local_private_files.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Encryption (기존 설정: AES256)
+# terraform import aws_s3_bucket_server_side_encryption_configuration.local_private_files bt-portal-local-private-files
+resource "aws_s3_bucket_server_side_encryption_configuration" "local_private_files" {
+  bucket = aws_s3_bucket.local_private_files.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Public Access Block (기존 설정)
+# terraform import aws_s3_bucket_public_access_block.local_private_files bt-portal-local-private-files
+resource "aws_s3_bucket_public_access_block" "local_private_files" {
+  bucket = aws_s3_bucket.local_private_files.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# CORS Configuration (기존 설정: localhost:3000, 127.0.0.1:3000)
+# terraform import aws_s3_bucket_cors_configuration.local_private_files bt-portal-local-private-files
+resource "aws_s3_bucket_cors_configuration" "local_private_files" {
+  bucket = aws_s3_bucket.local_private_files.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["POST", "GET", "HEAD", "DELETE", "PUT"]
+    allowed_origins = [
+      "http://127.0.0.1:3000",
+      "http://localhost:3000"
+    ]
+    expose_headers  = ["ETag", "Content-Type", "Content-Length"]
+    max_age_seconds = 3600
+  }
+}
+
+# Lifecycle Configuration (비공개 파일 버킷 - 비용 최적화)
+resource "aws_s3_bucket_lifecycle_configuration" "local_private_files" {
+  bucket = aws_s3_bucket.local_private_files.id
+
+  rule {
+    id     = "transition-to-intelligent-tiering"
+    status = "Enabled"
+
+    filter {
+      prefix = "" # 모든 객체에 적용
+    }
+
+    transition {
+      days          = 30
+      storage_class = "INTELLIGENT_TIERING"
+    }
+  }
+
+  rule {
+    id     = "expire-old-versions"
+    status = "Enabled"
+
+    filter {
+      prefix = "" # 모든 객체에 적용
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 90
+    }
+  }
+}
+
+# Bucket Policy (기존 설정: IP 기반 접근 제어)
+# terraform import aws_s3_bucket_policy.local_private_files bt-portal-local-private-files
+resource "aws_s3_bucket_policy" "local_private_files" {
+  bucket = aws_s3_bucket.local_private_files.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowOnlyWhitelistedIps"
+        Effect = "Allow"
+        Principal = "*"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.local_private_files.arn,
+          "${aws_s3_bucket.local_private_files.arn}/*"
+        ]
+        Condition = {
+          IpAddress = {
+            "aws:SourceIp" = ["112.222.28.115/32"]
+          }
+        }
+      }
+    ]
+  })
+}
+
 # 4단계: ACM 인증서 (커스텀 도메인 사용 시에만)
 module "acm" {
   count  = var.use_custom_domain ? 1 : 0
