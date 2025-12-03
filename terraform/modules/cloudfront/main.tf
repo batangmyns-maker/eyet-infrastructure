@@ -207,8 +207,13 @@ resource "aws_cloudfront_distribution" "frontend" {
     response_page_path    = "/index.html"
   }
 
-  # 주의: 403 에러 처리는 Lambda@Edge 함수에서 직접 URI를 변경하여 처리
-  # custom_error_response는 Lambda@Edge의 viewer-request 이벤트 이후에 작동하지 않음
+  # SPA용 - 403도 index.html로 리다이렉트 (존재하지 않는 파일 접근 시 발생 가능)
+  custom_error_response {
+    error_code            = 403
+    error_caching_min_ttl = 300
+    response_code         = 200
+    response_page_path    = "/index.html"
+  }
 
   restrictions {
     geo_restriction {
