@@ -107,6 +107,7 @@ module "secrets_manager" {
   db_password             = var.db_password
   jwt_secret_key          = var.jwt_secret_key
   toss_secret_key         = var.toss_secret_key
+  toss_security_key       = var.toss_security_key
   cloudfront_private_key   = var.cloudfront_private_key
 
   depends_on = [module.rds]

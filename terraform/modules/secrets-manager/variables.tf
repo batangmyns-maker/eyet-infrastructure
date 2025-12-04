@@ -48,6 +48,12 @@ variable "toss_secret_key" {
   sensitive   = true
 }
 
+variable "toss_security_key" {
+  description = "Toss Payments 보안키"
+  type        = string
+  sensitive   = true
+}
+
 variable "cloudfront_private_key" {
   description = "CloudFront Signed URL 생성용 Private Key (PEM 형식) - 선택사항"
   type        = string

@@ -66,6 +66,7 @@ resource "aws_secretsmanager_secret_version" "toss_secret" {
   secret_id = aws_secretsmanager_secret.toss_secret.id
   secret_string = jsonencode({
     "toss-secret-key" = var.toss_secret_key
+    "toss-security-key" = var.toss_security_key
   })
 }
 

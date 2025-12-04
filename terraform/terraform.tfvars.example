@@ -39,6 +39,7 @@ cloudfront_backend_port = 80
 # 시크릿 키 (🔐 민감 정보)
 jwt_secret_key  = "CHANGE_ME_PRODUCTION_JWT_SECRET_KEY_AT_LEAST_64_CHARACTERS_RANDOM"
 toss_secret_key = "live_sk_..."  # 토스페이먼츠 라이브 키
+toss_security_key = "CHANGE_ME_TOSS_SECURITY_KEY"  # 토스페이먼츠 보안키
 
 # CORS 설정
 cors_allowed_origins = [
