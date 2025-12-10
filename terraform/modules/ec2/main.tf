@@ -42,6 +42,19 @@ resource "aws_iam_role_policy" "s3_access" {
           "arn:aws:s3:::${var.uploads_bucket_name}",
           "arn:aws:s3:::${var.uploads_bucket_name}/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.file_transfer_bucket_name}",
+          "arn:aws:s3:::${var.file_transfer_bucket_name}/*"
+        ]
       }
     ]
   })

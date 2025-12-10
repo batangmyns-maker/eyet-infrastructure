@@ -89,6 +89,28 @@ resource "aws_secretsmanager_secret_version" "cloudfront_private_key" {
   })
 }
 
+# 5. 본인인증 설정 (Identity Verification)
+resource "aws_secretsmanager_secret" "identity_verification" {
+  count       = var.identity_verification_key_file_password != null && var.identity_verification_client_prefix != null ? 1 : 0
+  name        = "/${var.project_name}/${var.environment}/identity-verification"
+  description = "본인인증 설정 (키파일 패스워드 및 회원사 ID)"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-identity-verification"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "identity_verification" {
+  count     = var.identity_verification_key_file_password != null && var.identity_verification_client_prefix != null ? 1 : 0
+  secret_id = aws_secretsmanager_secret.identity_verification[0].id
+  secret_string = jsonencode({
+    "key-file-password" = var.identity_verification_key_file_password
+    "client-prefix"     = var.identity_verification_client_prefix
+  })
+}
+
 # 선택사항: RDS 비밀번호 자동 로테이션 설정
 # 참고: 로테이션 Lambda 함수가 필요하며, 추가 설정이 필요합니다.
 # 운영 환경에서는 아래 주석을 해제하여 30일마다 자동 로테이션 활성화를 권장합니다.

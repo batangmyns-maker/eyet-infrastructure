@@ -49,6 +49,11 @@ variable "uploads_bucket_name" {
   type        = string
 }
 
+variable "file_transfer_bucket_name" {
+  description = "파일 이동용 S3 버킷 이름 (로컬 -> EC2)"
+  type        = string
+}
+
 variable "aws_region" {
   description = "AWS 리전 (provider region과 동일)"
   type        = string

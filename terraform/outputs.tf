@@ -43,6 +43,11 @@ output "s3_uploads_bucket" {
   value       = module.s3.uploads_bucket_id
 }
 
+output "s3_file_transfer_bucket" {
+  description = "파일 이동용 S3 버킷 (로컬 -> EC2)"
+  value       = aws_s3_bucket.file_transfer.id
+}
+
 # CloudFront 출력
 output "cloudfront_frontend_url" {
   description = "프론트엔드 CloudFront URL"

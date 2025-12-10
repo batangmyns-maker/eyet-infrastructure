@@ -109,6 +109,8 @@ module "secrets_manager" {
   toss_secret_key         = var.toss_secret_key
   toss_security_key       = var.toss_security_key
   cloudfront_private_key   = var.cloudfront_private_key
+  identity_verification_key_file_password = var.identity_verification_key_file_password
+  identity_verification_client_prefix     = var.identity_verification_client_prefix
 
   depends_on = [module.rds]
 }
@@ -127,6 +129,82 @@ module "s3" {
   cloudfront_frontend_distribution_arn = ""
   cloudfront_uploads_distribution_arn  = ""
   ec2_role_arn                         = ""
+}
+
+# ============================================================
+# 파일 이동용 버킷 (로컬 -> EC2 파일 전송용)
+# ============================================================
+resource "aws_s3_bucket" "file_transfer" {
+  bucket = "${var.project_name}-${var.environment}-file-transfer"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-file-transfer"
+    Environment = var.environment
+    Project     = var.project_name
+    Purpose     = "File Transfer Local to EC2"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# Versioning
+resource "aws_s3_bucket_versioning" "file_transfer" {
+  bucket = aws_s3_bucket.file_transfer.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "file_transfer" {
+  bucket = aws_s3_bucket.file_transfer.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Public Access Block
+resource "aws_s3_bucket_public_access_block" "file_transfer" {
+  bucket = aws_s3_bucket.file_transfer.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Lifecycle Configuration (비용 최적화)
+resource "aws_s3_bucket_lifecycle_configuration" "file_transfer" {
+  bucket = aws_s3_bucket.file_transfer.id
+
+  rule {
+    id     = "expire-old-files"
+    status = "Enabled"
+
+    filter {
+      prefix = "" # 모든 객체에 적용
+    }
+
+    expiration {
+      days = 30 # 30일 후 자동 삭제
+    }
+  }
+
+  rule {
+    id     = "expire-old-versions"
+    status = "Enabled"
+
+    filter {
+      prefix = "" # 모든 객체에 적용
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 7
+    }
+  }
 }
 
 # ============================================================
@@ -464,6 +542,7 @@ module "ec2" {
   security_group_id   = module.security_groups.ec2_security_group_id
   root_volume_size    = 50
   uploads_bucket_name = module.s3.uploads_bucket_id
+  file_transfer_bucket_name = aws_s3_bucket.file_transfer.id
   aws_region          = var.aws_region
 
   db_host     = module.rds.db_instance_address
@@ -768,6 +847,60 @@ resource "aws_s3_bucket_policy" "uploads" {
   })
 
   depends_on = [module.cloudfront, module.ec2]
+}
+
+# 파일 이동용 버킷 정책 (EC2 생성 후)
+resource "aws_s3_bucket_policy" "file_transfer" {
+  bucket = aws_s3_bucket.file_transfer.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      [
+        {
+          Sid    = "AllowBackendEc2RoleAccess"
+          Effect = "Allow"
+          Principal = {
+            AWS = module.ec2.iam_role_arn
+          }
+          Action = [
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:DeleteObject",
+            "s3:ListBucket"
+          ]
+          Resource = [
+            aws_s3_bucket.file_transfer.arn,
+            "${aws_s3_bucket.file_transfer.arn}/*"
+          ]
+        }
+      ],
+      length(var.trusted_operator_cidrs) > 0 ? [
+        {
+          Sid       = "AllowWhitelistedIpAccess"
+          Effect    = "Allow"
+          Principal = "*"
+          Action = [
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:DeleteObject",
+            "s3:ListBucket"
+          ]
+          Resource = [
+            aws_s3_bucket.file_transfer.arn,
+            "${aws_s3_bucket.file_transfer.arn}/*"
+          ]
+          Condition = {
+            IpAddress = {
+              "aws:SourceIp" = var.trusted_operator_cidrs
+            }
+          }
+        }
+      ] : []
+    )
+  })
+
+  depends_on = [module.ec2]
 }
 
 # 비공개 파일 버킷 정책 (CloudFront/EC2 생성 후)

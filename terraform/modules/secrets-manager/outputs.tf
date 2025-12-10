@@ -38,13 +38,28 @@ output "cloudfront_private_key_secret_name" {
   value       = aws_secretsmanager_secret.cloudfront_private_key.name
 }
 
+output "identity_verification_secret_arn" {
+  description = "본인인증 시크릿 ARN"
+  value       = try(aws_secretsmanager_secret.identity_verification[0].arn, null)
+}
+
+output "identity_verification_secret_name" {
+  description = "본인인증 시크릿 이름"
+  value       = try(aws_secretsmanager_secret.identity_verification[0].name, null)
+}
+
 output "all_secret_arns" {
   description = "모든 시크릿 ARN 목록"
-  value = [
-    aws_secretsmanager_secret.db_credentials.arn,
-    aws_secretsmanager_secret.jwt_secret.arn,
-    aws_secretsmanager_secret.toss_secret.arn,
-    aws_secretsmanager_secret.cloudfront_private_key.arn
-  ]
+  value = concat(
+    [
+      aws_secretsmanager_secret.db_credentials.arn,
+      aws_secretsmanager_secret.jwt_secret.arn,
+      aws_secretsmanager_secret.toss_secret.arn,
+      aws_secretsmanager_secret.cloudfront_private_key.arn
+    ],
+    var.identity_verification_key_file_password != null && var.identity_verification_client_prefix != null ? [
+      aws_secretsmanager_secret.identity_verification[0].arn
+    ] : []
+  )
 }
 

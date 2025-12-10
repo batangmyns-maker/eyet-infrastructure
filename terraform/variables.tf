@@ -214,3 +214,18 @@ variable "cloudfront_private_key" {
   default     = ""  # Key Pair 생성 전까지는 빈 값
 }
 
+# 본인인증 설정
+variable "identity_verification_key_file_password" {
+  description = "본인인증 키파일 패스워드"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "identity_verification_client_prefix" {
+  description = "본인인증 회원사 ID (드림시큐리티에서 제공)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
