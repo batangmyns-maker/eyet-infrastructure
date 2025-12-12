@@ -107,3 +107,4 @@ echo ""
 echo "로그 확인 방법:"
 echo "  AWS CLI: aws logs tail /aws/ec2/bt-portal-backend/${ENVIRONMENT} --follow"
 echo "  또는 AWS Console → CloudWatch → Logs → Log groups"
+

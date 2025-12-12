@@ -111,6 +111,7 @@ module "secrets_manager" {
   cloudfront_private_key   = var.cloudfront_private_key
   identity_verification_key_file_password = var.identity_verification_key_file_password
   identity_verification_client_prefix     = var.identity_verification_client_prefix
+  identity_verification_encryption_key    = var.identity_verification_encryption_key
 
   depends_on = [module.rds]
 }

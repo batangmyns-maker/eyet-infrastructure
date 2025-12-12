@@ -48,6 +48,11 @@ output "identity_verification_secret_name" {
   value       = try(aws_secretsmanager_secret.identity_verification[0].name, null)
 }
 
+output "identity_verification_encryption_key_secret_name" {
+  description = "본인인증 암호화 키가 포함된 시크릿 이름"
+  value       = try(aws_secretsmanager_secret.identity_verification[0].name, null)
+}
+
 output "all_secret_arns" {
   description = "모든 시크릿 ARN 목록"
   value = concat(

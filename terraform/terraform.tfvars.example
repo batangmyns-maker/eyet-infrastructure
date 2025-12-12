@@ -70,3 +70,13 @@ ses_dmarc_policy            = "none"  # DMARC 정책: "none"(모니터링만), "
 cloudfront_key_group_id = null  # 예: "k1234567890abc" (Key Group ID)
 cloudfront_private_key  = ""   # private_key.pem 파일의 전체 내용 (PEM 형식)
 
+# 본인인증 설정
+identity_verification_key_file_password = "CHANGE_ME_KEY_FILE_PASSWORD"  # 🔐 본인인증 키파일 패스워드
+identity_verification_client_prefix     = "CHANGE_ME_CLIENT_PREFIX"     # 🔐 본인인증 회원사 ID
+# 본인인증정보 DB 저장 시 사용할 암호화/복호화 키 (AES-256: 32바이트, Base64 인코딩 권장)
+# 생성 방법 예시:
+#   - Java: Base64.getEncoder().encodeToString(SecureRandom.getInstanceStrong().generateSeed(32))
+#   - OpenSSL: openssl rand -base64 32
+#   - Python: base64.b64encode(os.urandom(32)).decode('utf-8')
+identity_verification_encryption_key    = "CHANGE_ME_BASE64_ENCODED_32_BYTE_KEY"  # 🔐 실제 암호화 키
+

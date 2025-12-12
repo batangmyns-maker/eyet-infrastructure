@@ -93,7 +93,7 @@ resource "aws_secretsmanager_secret_version" "cloudfront_private_key" {
 resource "aws_secretsmanager_secret" "identity_verification" {
   count       = var.identity_verification_key_file_password != null && var.identity_verification_client_prefix != null ? 1 : 0
   name        = "/${var.project_name}/${var.environment}/identity-verification"
-  description = "본인인증 설정 (키파일 패스워드 및 회원사 ID)"
+  description = "본인인증 설정 (키파일 패스워드, 회원사 ID, DB 암호화 키)"
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-identity-verification"
@@ -108,6 +108,7 @@ resource "aws_secretsmanager_secret_version" "identity_verification" {
   secret_string = jsonencode({
     "key-file-password" = var.identity_verification_key_file_password
     "client-prefix"     = var.identity_verification_client_prefix
+    "encryption-key"    = var.identity_verification_encryption_key != null ? var.identity_verification_encryption_key : ""
   })
 }
 

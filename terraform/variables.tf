@@ -229,3 +229,10 @@ variable "identity_verification_client_prefix" {
   default     = null
 }
 
+variable "identity_verification_encryption_key" {
+  description = "본인인증정보 DB 저장 시 사용할 암호화/복호화 키 (AES-256: 32바이트, Base64 인코딩 권장)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
