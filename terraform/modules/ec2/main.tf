@@ -76,7 +76,10 @@ resource "aws_iam_role_policy" "cloudwatch_logs" {
           "logs:PutLogEvents",
           "logs:DescribeLogStreams"
         ]
-        Resource = "arn:aws:logs:*:*:*"
+        Resource = [
+          var.cloudwatch_log_group_arn,
+          "${var.cloudwatch_log_group_arn}:*"
+        ]
       }
     ]
   })
@@ -216,6 +219,7 @@ resource "aws_instance" "main" {
     cloudfront_private_distribution_domain = var.cloudfront_private_distribution_domain
     cloudfront_key_pair_id             = var.cloudfront_key_pair_id
     aws_region                        = var.aws_region
+    api_domain                        = var.api_domain
   })
 
   # 메타데이터 옵션 (보안 강화)

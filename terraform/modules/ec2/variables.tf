@@ -138,4 +138,13 @@ variable "cloudfront_key_pair_id" {
   default     = ""
 }
 
+variable "cloudwatch_log_group_arn" {
+  description = "CloudWatch Log Group ARN (백엔드 로그용)"
+  type        = string
+}
 
+variable "api_domain" {
+  description = "API 도메인 (api.example.com) - nginx server_name에 사용"
+  type        = string
+  default     = ""
+}

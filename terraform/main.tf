@@ -529,6 +529,19 @@ resource "aws_acm_certificate_validation" "main" {
   }
 }
 
+# 5-3단계: CloudWatch Logs (백엔드 로그 관리)
+resource "aws_cloudwatch_log_group" "bt_portal_backend" {
+  name              = "/aws/ec2/bt-portal-backend/${var.environment}"
+  retention_in_days = 30
+
+  tags = {
+    Environment = var.environment
+    Application = "bt-portal-backend"
+    Purpose     = "application-logs"
+    Project     = var.project_name
+  }
+}
+
 # 6단계: EC2 인스턴스
 module "ec2" {
   source = "./modules/ec2"
@@ -562,8 +575,10 @@ module "ec2" {
   # CloudFront 도메인은 커스텀 도메인 사용 시 직접 계산, 아니면 나중에 환경 변수로 설정
   cloudfront_private_distribution_domain = var.use_custom_domain ? "private-cdn.${var.domain_name}" : ""
   cloudfront_key_pair_id              = var.cloudfront_key_pair_id
+  cloudwatch_log_group_arn            = aws_cloudwatch_log_group.bt_portal_backend.arn
+  api_domain                          = var.use_custom_domain ? "api.${var.domain_name}" : ""
 
-  depends_on = [module.rds, module.secrets_manager]
+  depends_on = [module.rds, module.secrets_manager, aws_cloudwatch_log_group.bt_portal_backend]
 }
 
 # 7단계: CloudFront

@@ -38,7 +38,7 @@ sudo yum install -y git
 echo "Creating application directories..."
 sudo mkdir -p /app
 sudo mkdir -p /app/uploaded-files
-sudo mkdir -p /app/logs
+sudo mkdir -p /app/logs/${environment}
 sudo chown -R ec2-user:ec2-user /app
 
 # 환경 변수 설정 (Spring Boot에서 사용)
@@ -113,37 +113,28 @@ sudo yum install -y nginx
 
 # Nginx 설정
 echo "Configuring Nginx..."
-cat <<'EOF' | sudo tee /etc/nginx/conf.d/${project_name}.conf
-upstream backend {
-    server localhost:${server_port};
+cat <<EOF | sudo tee /etc/nginx/conf.d/api.conf
+upstream backend_app {
+    server 127.0.0.1:${server_port};
 }
 
 server {
     listen 80;
-    server_name _;
+    server_name %{ if api_domain != "" ~}${api_domain}%{ else ~}_%{ endif ~};
 
-    client_max_body_size 1536M;
+    # CloudFront가 큰 파일도 업로드할 수 있도록 필요한 값만 조정
+    client_max_body_size 1G;
 
     location / {
-        proxy_pass http://backend;
+        proxy_pass http://backend_app;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-        
-        # 타임아웃 설정 (대용량 파일 업로드용)
-        proxy_connect_timeout 300;
-        proxy_send_timeout 300;
+        proxy_set_header Host $$host;
+        proxy_set_header X-Real-IP $$remote_addr;
+        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $$scheme;
+        proxy_set_header Connection "";
         proxy_read_timeout 300;
-    }
-
-    location /actuator/health {
-        proxy_pass http://backend/actuator/health;
-        access_log off;
+        proxy_send_timeout 300;
     }
 }
 EOF
@@ -153,6 +144,13 @@ sudo systemctl enable nginx
 
 # CloudWatch Logs 설정
 echo "Configuring CloudWatch Logs..."
+# 실제 로그 경로 확인 및 디렉토리 생성 (ssm-user 권한)
+# CloudWatch Logs Agent가 읽을 수 있도록 권한 설정
+sudo mkdir -p /home/ssm-user/eyet-backend/logs
+sudo chown -R ssm-user:ssm-user /home/ssm-user/eyet-backend
+# CloudWatch Logs Agent (cwagent 사용자)가 로그 파일을 읽을 수 있도록 권한 부여
+sudo chmod -R 755 /home/ssm-user/eyet-backend/logs || true
+
 cat <<EOF | sudo tee /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 {
   "logs": {
@@ -160,19 +158,44 @@ cat <<EOF | sudo tee /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agen
       "files": {
         "collect_list": [
           {
-            "file_path": "/app/logs/simple-${environment}.log",
-            "log_group_name": "/${project_name}/${environment}/application",
-            "log_stream_name": "{instance_id}/application.log"
+            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/application.log",
+            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
+            "log_stream_name": "application-{instance_id}"
+          },
+          {
+            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/access.log",
+            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
+            "log_stream_name": "access-{instance_id}"
+          },
+          {
+            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/error.log",
+            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
+            "log_stream_name": "error-{instance_id}"
+          },
+          {
+            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/sql.log",
+            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
+            "log_stream_name": "sql-{instance_id}"
+          },
+          {
+            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/workflow-scheduler.log",
+            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
+            "log_stream_name": "workflow-scheduler-{instance_id}"
+          },
+          {
+            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/license-subscription-scheduler.log",
+            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
+            "log_stream_name": "license-subscription-scheduler-{instance_id}"
           },
           {
             "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "/${project_name}/${environment}/nginx",
-            "log_stream_name": "{instance_id}/access.log"
+            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
+            "log_stream_name": "nginx-access-{instance_id}"
           },
           {
             "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "/${project_name}/${environment}/nginx",
-            "log_stream_name": "{instance_id}/error.log"
+            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
+            "log_stream_name": "nginx-error-{instance_id}"
           }
         ]
       }
