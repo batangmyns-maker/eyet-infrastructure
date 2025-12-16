@@ -83,3 +83,11 @@ variable "identity_verification_encryption_key" {
   default     = null
 }
 
+# Google OAuth 설정
+variable "google_oauth_client_secret" {
+  description = "Google OAuth Client Secret"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+

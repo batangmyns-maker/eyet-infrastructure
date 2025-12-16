@@ -80,3 +80,6 @@ identity_verification_client_prefix     = "CHANGE_ME_CLIENT_PREFIX"     # 🔐 �
 #   - Python: base64.b64encode(os.urandom(32)).decode('utf-8')
 identity_verification_encryption_key    = "CHANGE_ME_BASE64_ENCODED_32_BYTE_KEY"  # 🔐 실제 암호화 키
 
+# Google OAuth 설정
+google_oauth_client_secret = "GOCSPX-..."  # 🔐 Google OAuth Client Secret (Google Cloud Console에서 발급받은 값)
+

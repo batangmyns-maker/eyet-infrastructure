@@ -5,6 +5,7 @@
 # - DB 관련: db-*
 # - JWT 관련: jwt-*
 # - Toss 관련: toss-*
+# - Google 관련: google-oauth-*
 
 # 1. RDS 데이터베이스 자격증명
 resource "aws_secretsmanager_secret" "db_credentials" {
@@ -109,6 +110,27 @@ resource "aws_secretsmanager_secret_version" "identity_verification" {
     "key-file-password" = var.identity_verification_key_file_password
     "client-prefix"     = var.identity_verification_client_prefix
     "encryption-key"    = var.identity_verification_encryption_key != null ? var.identity_verification_encryption_key : ""
+  })
+}
+
+# 6. Google OAuth Client Secret
+resource "aws_secretsmanager_secret" "google_oauth" {
+  count       = var.google_oauth_client_secret != null ? 1 : 0
+  name        = "/${var.project_name}/${var.environment}/google-oauth"
+  description = "Google OAuth Client Secret"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-google-oauth"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "google_oauth" {
+  count     = var.google_oauth_client_secret != null ? 1 : 0
+  secret_id = aws_secretsmanager_secret.google_oauth[0].id
+  secret_string = jsonencode({
+    "google-oauth-client-secret" = var.google_oauth_client_secret
   })
 }
 

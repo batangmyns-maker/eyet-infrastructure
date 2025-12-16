@@ -53,6 +53,16 @@ output "identity_verification_encryption_key_secret_name" {
   value       = try(aws_secretsmanager_secret.identity_verification[0].name, null)
 }
 
+output "google_oauth_secret_arn" {
+  description = "Google OAuth 시크릿 ARN"
+  value       = try(aws_secretsmanager_secret.google_oauth[0].arn, null)
+}
+
+output "google_oauth_secret_name" {
+  description = "Google OAuth 시크릿 이름"
+  value       = try(aws_secretsmanager_secret.google_oauth[0].name, null)
+}
+
 output "all_secret_arns" {
   description = "모든 시크릿 ARN 목록"
   value = concat(
@@ -64,6 +74,9 @@ output "all_secret_arns" {
     ],
     var.identity_verification_key_file_password != null && var.identity_verification_client_prefix != null ? [
       aws_secretsmanager_secret.identity_verification[0].arn
+    ] : [],
+    var.google_oauth_client_secret != null ? [
+      aws_secretsmanager_secret.google_oauth[0].arn
     ] : []
   )
 }
