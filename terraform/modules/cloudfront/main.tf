@@ -16,86 +16,210 @@ terraform {
   }
 }
 
-# Lambda@Edge 함수 - IP 화이트리스트 체크
-# 주의: Lambda@Edge는 us-east-1 리전에서만 생성 가능
-# Lambda@Edge는 환경 변수를 지원하지 않으므로 IP 목록을 코드에 직접 포함
+# CloudFront Function 코드 생성
 locals {
-  lambda_edge_code = var.enable_ip_whitelist ? templatefile("${path.module}/lambda-edge-template.js", {
-    ip_whitelist            = length(var.trusted_operator_cidrs) > 0 ? join(",", [for ip in var.trusted_operator_cidrs : "'${replace(ip, "'", "\\'")}'"]) : ""
-    ip_whitelist_error_page = var.ip_whitelist_error_page
-  }) : ""
+  # IP 화이트리스트 체크 코드 (문자열로 정의)
+  ip_whitelist_check_code = var.enable_ip_whitelist ? join("\n", [
+    "  if (whitelist.length > 0 && clientIP) {",
+    "    var ipAllowed = false;",
+    "    for (var i = 0; i < whitelist.length; i++) {",
+    "      var cidr = whitelist[i];",
+    "      if (!cidr) continue;",
+    "      if (cidr.indexOf('/') === -1) {",
+    "        // 단일 IP 주소 비교",
+    "        if (clientIP === cidr) {",
+    "          ipAllowed = true;",
+    "          break;",
+    "        }",
+    "      } else {",
+    "        // CIDR 범위 체크",
+    "        var cidrParts = cidr.split('/');",
+    "        if (cidrParts.length === 2) {",
+    "          var cidrIP = cidrParts[0];",
+    "          var mask = parseInt(cidrParts[1]);",
+    "          if (cidrIP && !isNaN(mask) && isIPInCIDR(clientIP, cidrIP, mask)) {",
+    "            ipAllowed = true;",
+    "            break;",
+    "          }",
+    "        }",
+    "      }",
+    "    }",
+    "    if (!ipAllowed) {",
+    "      // 화이트리스트에 없는 IP는 에러 페이지로 리다이렉트",
+    "      request.uri = '${var.ip_whitelist_error_page}';",
+    "      request.querystring = '';",
+    "      return request;",
+    "    }",
+    "  }"
+  ]) : ""
+
+  # www 리다이렉트 코드 (문자열로 정의)
+  redirect_code = var.use_custom_domain && var.root_domain != "" ? join("\n", [
+    "  if (host === '${var.root_domain}') {",
+    "    var uri = request.uri || '/';",
+    "    var qs = request.querystring;",
+    "    var querystring = '';",
+    "    ",
+    "    // 쿼리 스트링 재구성",
+    "    if (qs) {",
+    "      var qsParts = [];",
+    "      for (var key in qs) {",
+    "        if (qs.hasOwnProperty(key)) {",
+    "          var value = qs[key].value || '';",
+    "          qsParts.push(key + '=' + encodeURIComponent(value));",
+    "        }",
+    "      }",
+    "      querystring = qsParts.join('&');",
+    "    }",
+    "    ",
+    "    var redirectUrl = 'https://${var.frontend_domain}' + uri;",
+    "    if (querystring) {",
+    "      redirectUrl += '?' + querystring;",
+    "    }",
+    "    ",
+    "    return {",
+    "      statusCode: 301,",
+    "      statusDescription: 'Moved Permanently',",
+    "      headers: {",
+    "        'location': { value: redirectUrl }",
+    "      }",
+    "    };",
+    "  }"
+  ]) : ""
+
+  # CloudFront Function 전체 코드
+  cloudfront_function_code = (var.use_custom_domain && var.root_domain != "") || var.enable_ip_whitelist ? join("\n", [
+    "function handler(event) {",
+    "  var request = event.request;",
+    "  if (!request) return { statusCode: 500, statusDescription: 'Internal Server Error' };",
+    "  var host = request.headers && request.headers.host ? request.headers.host.value : '';",
+    "  // CloudFront Function에서는 event.viewer.ip를 사용해야 함",
+    "  var clientIP = event.viewer && event.viewer.ip ? event.viewer.ip : '';",
+    "  // X-Forwarded-For 헤더가 있으면 우선 사용 (실제 클라이언트 IP)",
+    "  if (request.headers && request.headers['x-forwarded-for'] && request.headers['x-forwarded-for'].value) {",
+    "    var forwardedIPs = request.headers['x-forwarded-for'].value.split(',');",
+    "    if (forwardedIPs.length > 0) {",
+    "      clientIP = forwardedIPs[0].trim();",
+    "    }",
+    "  }",
+    "  ",
+    "  // IP 화이트리스트 체크 (활성화된 경우)",
+    "  var whitelist = [${length(var.trusted_operator_cidrs) > 0 ? join(",", [for ip in var.trusted_operator_cidrs : "'${replace(ip, "'", "\\'")}'"]) : ""}];",
+    "  ",
+    local.ip_whitelist_check_code,
+    "  ",
+    "  // 루트 도메인을 www로 리다이렉트",
+    local.redirect_code,
+    "  ",
+    "  return request;",
+    "}",
+    "",
+    "// IP를 숫자로 변환하는 함수",
+    "function ipToNumber(ip) {",
+    "  if (!ip || typeof ip !== 'string') return 0;",
+    "  var ipParts = ip.split('.');",
+    "  if (ipParts.length !== 4) return 0;",
+    "  return (parseInt(ipParts[0]) << 24) +",
+    "         (parseInt(ipParts[1]) << 16) +",
+    "         (parseInt(ipParts[2]) << 8) +",
+    "         parseInt(ipParts[3]);",
+    "}",
+    "",
+    "// IP가 CIDR 범위에 있는지 확인하는 함수",
+    "function isIPInCIDR(ip, cidrIP, mask) {",
+    "  if (!ip || !cidrIP || !mask || mask < 0 || mask > 32) return false;",
+    "  var ipNum = ipToNumber(ip);",
+    "  var cidrNum = ipToNumber(cidrIP);",
+    "  if (ipNum === 0 || cidrNum === 0) return false;",
+    "  var maskNum = ~((1 << (32 - mask)) - 1);",
+    "  return (ipNum & maskNum) === (cidrNum & maskNum);",
+    "}"
+  ]) : ""
 }
 
+# Lambda@Edge 관련 리소스는 옵션 2(CloudFront Function만 사용)로 인해 비활성화됨
+# 필요시 아래 리소스들의 count를 활성화하여 다시 사용 가능
+# 
 # Lambda@Edge는 handler가 "index.handler"이므로 zip 파일 안에 "index.js"가 있어야 함
 # 임시 디렉토리를 만들어서 index.js로 저장
-resource "local_file" "lambda_edge_index" {
-  count    = var.enable_ip_whitelist ? 1 : 0
-  filename = "${path.module}/lambda-temp/index.js"
-  content  = local.lambda_edge_code
-}
+# resource "local_file" "lambda_edge_index" {
+#   count    = var.enable_ip_whitelist || (var.use_custom_domain && var.root_domain != "") ? 1 : 0
+#   filename = "${path.module}/lambda-temp/index.js"
+#   content  = local.lambda_edge_code
+# }
+# 
+# data "archive_file" "lambda_edge_zip" {
+#   count       = var.enable_ip_whitelist ? 1 : 0
+#   type        = "zip"
+#   source_dir  = "${path.module}/lambda-temp"
+#   output_path = "${path.module}/lambda-edge-ip-whitelist.zip"
+#   depends_on  = [local_file.lambda_edge_index]
+# }
+# 
+# resource "aws_iam_role" "lambda_edge" {
+#   count    = var.enable_ip_whitelist ? 1 : 0
+#   name     = "${var.project_name}-${var.environment}-lambda-edge-role"
+#   provider = aws.us_east_1
+# 
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Action = "sts:AssumeRole"
+#         Effect = "Allow"
+#         Principal = {
+#           Service = [
+#             "edgelambda.amazonaws.com",
+#             "lambda.amazonaws.com"
+#           ]
+#         }
+#       }
+#     ]
+#   })
+# 
+#   tags = {
+#     Name        = "${var.project_name}-${var.environment}-lambda-edge-role"
+#     Environment = var.environment
+#     Project     = var.project_name
+#   }
+# }
+# 
+# resource "aws_iam_role_policy_attachment" "lambda_edge_basic" {
+#   count      = var.enable_ip_whitelist ? 1 : 0
+#   role       = aws_iam_role.lambda_edge[0].name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+#   provider   = aws.us_east_1
+# }
+# 
+# resource "aws_lambda_function" "ip_whitelist" {
+#   count         = var.enable_ip_whitelist ? 1 : 0
+#   filename      = data.archive_file.lambda_edge_zip[0].output_path
+#   function_name = "${var.project_name}-${var.environment}-ip-whitelist"
+#   role          = aws_iam_role.lambda_edge[0].arn
+#   handler       = "index.handler"
+#   runtime       = "nodejs18.x"
+#   provider      = aws.us_east_1
+#   publish       = true # Lambda@Edge는 버전이 필요하므로 publish = true 필수
+# 
+#   source_code_hash = data.archive_file.lambda_edge_zip[0].output_base64sha256
+# 
+#   # Lambda@Edge는 환경 변수를 지원하지 않으므로 제거
+# 
+#   tags = {
+#     Name        = "${var.project_name}-${var.environment}-ip-whitelist"
+#     Environment = var.environment
+#     Project     = var.project_name
+#   }
+# }
 
-data "archive_file" "lambda_edge_zip" {
-  count       = var.enable_ip_whitelist ? 1 : 0
-  type        = "zip"
-  source_dir  = "${path.module}/lambda-temp"
-  output_path = "${path.module}/lambda-edge-ip-whitelist.zip"
-  depends_on  = [local_file.lambda_edge_index]
-}
-
-resource "aws_iam_role" "lambda_edge" {
-  count    = var.enable_ip_whitelist ? 1 : 0
-  name     = "${var.project_name}-${var.environment}-lambda-edge-role"
-  provider = aws.us_east_1
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = [
-            "edgelambda.amazonaws.com",
-            "lambda.amazonaws.com"
-          ]
-        }
-      }
-    ]
-  })
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-lambda-edge-role"
-    Environment = var.environment
-    Project     = var.project_name
-  }
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_edge_basic" {
-  count      = var.enable_ip_whitelist ? 1 : 0
-  role       = aws_iam_role.lambda_edge[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  provider   = aws.us_east_1
-}
-
-resource "aws_lambda_function" "ip_whitelist" {
-  count         = var.enable_ip_whitelist ? 1 : 0
-  filename      = data.archive_file.lambda_edge_zip[0].output_path
-  function_name = "${var.project_name}-${var.environment}-ip-whitelist"
-  role          = aws_iam_role.lambda_edge[0].arn
-  handler       = "index.handler"
-  runtime       = "nodejs18.x"
-  provider      = aws.us_east_1
-  publish       = true # Lambda@Edge는 버전이 필요하므로 publish = true 필수
-
-  source_code_hash = data.archive_file.lambda_edge_zip[0].output_base64sha256
-
-  # Lambda@Edge는 환경 변수를 지원하지 않으므로 제거
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-ip-whitelist"
-    Environment = var.environment
-    Project     = var.project_name
-  }
+# CloudFront Function - www 리다이렉트 + IP 화이트리스트 체크
+resource "aws_cloudfront_function" "www_redirect" {
+  count    = (var.use_custom_domain && var.root_domain != "") || var.enable_ip_whitelist ? 1 : 0
+  name     = "${var.project_name}-${var.environment}-www-redirect"
+  runtime  = "cloudfront-js-1.0"
+  comment  = "Redirect ${var.root_domain} to ${var.frontend_domain} and IP whitelist check"
+  publish  = true
+  code     = local.cloudfront_function_code
 }
 
 # API 전용 CORS 헤더 정책
@@ -175,13 +299,12 @@ resource "aws_cloudfront_distribution" "frontend" {
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-Frontend"
 
-    # Lambda@Edge 연결 (IP 화이트리스트 체크)
-    dynamic "lambda_function_association" {
-      for_each = var.enable_ip_whitelist ? [1] : []
+    # CloudFront Function 연결 (www 리다이렉트 + IP 화이트리스트 체크)
+    dynamic "function_association" {
+      for_each = (var.use_custom_domain && var.root_domain != "") || var.enable_ip_whitelist ? [1] : []
       content {
         event_type   = "viewer-request"
-        lambda_arn   = aws_lambda_function.ip_whitelist[0].qualified_arn
-        include_body = false
+        function_arn = aws_cloudfront_function.www_redirect[0].arn
       }
     }
 
