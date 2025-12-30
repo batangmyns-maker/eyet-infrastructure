@@ -157,6 +157,13 @@ variable "toss_security_key" {
   default     = null  # prod 환경에서만 사용
 }
 
+variable "openai_api_key" {
+  description = "OpenAI API Key"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
 variable "cors_allowed_origins" {
   description = "CORS 허용 오리진"
   type        = list(string)

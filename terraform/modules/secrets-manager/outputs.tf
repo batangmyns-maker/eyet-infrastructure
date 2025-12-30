@@ -72,6 +72,9 @@ output "all_secret_arns" {
       aws_secretsmanager_secret.toss_secret.arn,
       aws_secretsmanager_secret.cloudfront_private_key.arn
     ],
+    var.openai_api_key != null ? [
+      aws_secretsmanager_secret.openai[0].arn
+    ] : [],
     var.identity_verification_key_file_password != null && var.identity_verification_client_prefix != null ? [
       aws_secretsmanager_secret.identity_verification[0].arn
     ] : [],

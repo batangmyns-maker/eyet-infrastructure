@@ -117,3 +117,21 @@ variable "ip_whitelist_error_page" {
   type        = string
   default     = "/coming-soon.html"
 }
+
+variable "enable_api_waf" {
+  description = "API CloudFront Distribution에 WAFv2를 연결할지 여부"
+  type        = bool
+  default     = true
+}
+
+variable "api_origin_read_timeout" {
+  description = "CloudFront -> API 오리진 응답 타임아웃(초). CloudFront 최대 60초"
+  type        = number
+  default     = 60
+}
+
+variable "api_origin_keepalive_timeout" {
+  description = "CloudFront -> API 오리진 keep-alive 타임아웃(초)"
+  type        = number
+  default     = 5
+}

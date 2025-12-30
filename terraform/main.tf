@@ -108,6 +108,7 @@ module "secrets_manager" {
   jwt_secret_key          = var.jwt_secret_key
   toss_secret_key         = var.toss_secret_key
   toss_security_key       = var.toss_security_key
+  openai_api_key          = var.openai_api_key
   cloudfront_private_key   = var.cloudfront_private_key
   identity_verification_key_file_password = var.identity_verification_key_file_password
   identity_verification_client_prefix     = var.identity_verification_client_prefix
@@ -612,6 +613,10 @@ module "cloudfront" {
   # IP 화이트리스트 설정
   trusted_operator_cidrs = var.trusted_operator_cidrs
   enable_ip_whitelist     = true  # 필요시 변수로 제어 가능
+
+  enable_api_waf               = true
+  api_origin_read_timeout      = 60
+  api_origin_keepalive_timeout = 5
 
   price_class = "PriceClass_200"
 }

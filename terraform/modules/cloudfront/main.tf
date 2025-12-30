@@ -16,6 +16,67 @@ terraform {
   }
 }
 
+resource "aws_wafv2_web_acl" "api" {
+  count    = var.enable_api_waf ? 1 : 0
+  name     = "${var.project_name}-${var.environment}-api-waf"
+  scope    = "CLOUDFRONT"
+  provider = aws.us_east_1
+
+  default_action {
+    allow {}
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.project_name}-${var.environment}-api-waf"
+    sampled_requests_enabled   = true
+  }
+
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 10
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.project_name}-${var.environment}-api-waf-common"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 20
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.project_name}-${var.environment}-api-waf-bad-inputs"
+      sampled_requests_enabled   = true
+    }
+  }
+}
+
 # CloudFront Function 코드 생성
 locals {
   # 화이트리스트 배열 (주석 처리됨)
@@ -258,6 +319,8 @@ resource "aws_cloudfront_distribution" "api" {
   comment         = "${var.project_name} ${var.environment} API"
   price_class     = var.price_class
 
+  web_acl_id = var.enable_api_waf ? aws_wafv2_web_acl.api[0].arn : null
+
   # 커스텀 도메인 (선택사항)
   aliases = var.use_custom_domain ? [var.api_domain] : []
 
@@ -270,6 +333,8 @@ resource "aws_cloudfront_distribution" "api" {
       https_port             = 443
       origin_protocol_policy = "http-only" # EC2에서는 HTTP, CloudFront에서 HTTPS 처리
       origin_ssl_protocols   = ["TLSv1.2"]
+      origin_read_timeout    = var.api_origin_read_timeout
+      origin_keepalive_timeout = var.api_origin_keepalive_timeout
     }
 
     custom_header {

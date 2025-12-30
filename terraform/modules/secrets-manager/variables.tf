@@ -54,6 +54,13 @@ variable "toss_security_key" {
   sensitive   = true
 }
 
+variable "openai_api_key" {
+  description = "OpenAI API Key"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
 variable "cloudfront_private_key" {
   description = "CloudFront Signed URL 생성용 Private Key (PEM 형식) - 선택사항"
   type        = string

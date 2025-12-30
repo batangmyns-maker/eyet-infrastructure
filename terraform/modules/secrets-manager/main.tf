@@ -71,6 +71,27 @@ resource "aws_secretsmanager_secret_version" "toss_secret" {
   })
 }
 
+# OpenAI API Key
+resource "aws_secretsmanager_secret" "openai" {
+  count       = var.openai_api_key != null ? 1 : 0
+  name        = "/${var.project_name}/${var.environment}/openai"
+  description = "OpenAI API Key"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-openai"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "openai" {
+  count     = var.openai_api_key != null ? 1 : 0
+  secret_id = aws_secretsmanager_secret.openai[0].id
+  secret_string = jsonencode({
+    "openai-api-key" = var.openai_api_key
+  })
+}
+
 # 4. CloudFront Private Key (Signed URL 생성용)
 resource "aws_secretsmanager_secret" "cloudfront_private_key" {
   name        = "/${var.project_name}/${var.environment}/cloudfront-private-key"
