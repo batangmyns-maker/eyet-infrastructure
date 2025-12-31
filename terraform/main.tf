@@ -614,8 +614,8 @@ module "cloudfront" {
   trusted_operator_cidrs = var.trusted_operator_cidrs
   enable_ip_whitelist     = true  # 필요시 변수로 제어 가능
 
-  enable_api_waf               = true
-  api_origin_read_timeout      = 60
+  enable_api_waf               = false
+  api_origin_read_timeout      = 120
   api_origin_keepalive_timeout = 5
 
   price_class = "PriceClass_200"
