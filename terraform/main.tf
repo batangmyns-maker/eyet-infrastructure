@@ -23,6 +23,15 @@ terraform {
 provider "aws" {
   region = var.aws_region
 
+  profile = var.aws_profile
+
+  dynamic "assume_role" {
+    for_each = var.terraform_role_arn == null ? [] : [var.terraform_role_arn]
+    content {
+      role_arn = assume_role.value
+    }
+  }
+
   default_tags {
     tags = {
       Environment = var.environment
@@ -35,6 +44,15 @@ provider "aws" {
 provider "aws" {
   alias  = "us_east_1"
   region = "us-east-1"
+
+  profile = var.aws_profile
+
+  dynamic "assume_role" {
+    for_each = var.terraform_role_arn == null ? [] : [var.terraform_role_arn]
+    content {
+      role_arn = assume_role.value
+    }
+  }
 
   default_tags {
     tags = {

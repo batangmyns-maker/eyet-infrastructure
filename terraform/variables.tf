@@ -22,6 +22,30 @@ variable "aws_region" {
   # default 제거 - 각 환경에서 필수 입력
 }
 
+variable "aws_profile" {
+  description = "로컬에서 사용할 AWS CLI profile 이름 (~/.aws/config). null이면 기본 credential chain 사용"
+  type        = string
+  default     = null
+}
+
+variable "terraform_role_arn" {
+  description = "Terraform이 AssumeRole로 사용할 IAM Role ARN (회사 IP에서만 Assume 가능하도록 Trust Policy로 제한 권장)"
+  type        = string
+  default     = null
+}
+
+variable "terraform_sso_principal_arn" {
+  description = "Terraform 실행을 허용할 SSO Principal(Role) ARN (예: AWSReservedSSO_* Role ARN). 설정 시 Terraform 전용 Role을 생성할 때 Trust Policy Principal로 사용"
+  type        = string
+  default     = null
+}
+
+variable "terraform_bootstrap_principal_arn" {
+  description = "SSO 전환 전 부트스트랩 용도로 Terraform 전용 Role Assume을 허용할 IAM Principal ARN (예: arn:aws:iam::<account-id>:user/terraform-admin). terraform_sso_principal_arn 설정 후 제거 권장"
+  type        = string
+  default     = null
+}
+
 # 도메인 설정
 variable "use_custom_domain" {
   description = "커스텀 도메인 사용 여부 (false면 CloudFront 기본 도메인 사용)"

@@ -8,6 +8,11 @@ project_name = "bt-portal"
 environment  = "prod"
 aws_region   = "ap-northeast-2"
 
+# 로컬 실행용 AWS 인증
+aws_profile       = null
+terraform_role_arn = null
+terraform_sso_principal_arn = null
+
 # 도메인 설정
 use_custom_domain = true
 domain_name       = "eyet.kr"
