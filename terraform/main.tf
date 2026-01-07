@@ -153,6 +153,74 @@ module "s3" {
 }
 
 # ============================================================
+# CloudFront Standard Logs S3 Bucket
+# 주의: CloudFront 표준 로그는 S3 ACL 기반 전달을 사용하므로
+# BucketOwnerEnforced(ACL 비활성화) 설정을 사용하면 로그 적재가 실패할 수 있습니다.
+# ============================================================
+resource "aws_s3_bucket" "cloudfront_logs" {
+  bucket = "${var.project_name}-${var.environment}-cloudfront-logs"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-cloudfront-logs"
+    Environment = var.environment
+    Project     = var.project_name
+    Purpose     = "CloudFront Standard Access Logs"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_s3_bucket_ownership_controls" "cloudfront_logs" {
+  bucket = aws_s3_bucket.cloudfront_logs.id
+
+  rule {
+    object_ownership = "ObjectWriter"
+  }
+}
+
+resource "aws_s3_bucket_acl" "cloudfront_logs" {
+  bucket = aws_s3_bucket.cloudfront_logs.id
+  acl    = "log-delivery-write"
+
+  depends_on = [aws_s3_bucket_ownership_controls.cloudfront_logs]
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "cloudfront_logs" {
+  bucket = aws_s3_bucket.cloudfront_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "cloudfront_logs" {
+  bucket = aws_s3_bucket.cloudfront_logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "cloudfront_logs" {
+  bucket = aws_s3_bucket.cloudfront_logs.id
+
+  rule {
+    id     = "expire-old-logs"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
+
+    expiration {
+      days = 30
+    }
+  }
+}
+
+# ============================================================
 # 파일 이동용 버킷 (로컬 -> EC2 파일 전송용)
 # ============================================================
 resource "aws_s3_bucket" "file_transfer" {
@@ -628,12 +696,15 @@ module "cloudfront" {
   api_allowed_origins  = var.cors_allowed_origins
   cloudfront_key_group_id = var.cloudfront_key_group_id
 
+  logging_bucket_domain_name = aws_s3_bucket.cloudfront_logs.bucket_domain_name
+  logging_prefix             = "cloudfront/"
+
   # IP 화이트리스트 설정
   trusted_operator_cidrs = var.trusted_operator_cidrs
   enable_ip_whitelist     = true  # 필요시 변수로 제어 가능
 
   enable_api_waf               = false
-  api_origin_read_timeout      = 120
+  api_origin_read_timeout      = 60
   api_origin_keepalive_timeout = 5
 
   price_class = "PriceClass_200"

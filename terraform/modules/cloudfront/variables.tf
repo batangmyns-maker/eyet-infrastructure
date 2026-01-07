@@ -135,3 +135,15 @@ variable "api_origin_keepalive_timeout" {
   type        = number
   default     = 5
 }
+
+variable "logging_bucket_domain_name" {
+  description = "CloudFront Standard Logs를 저장할 S3 버킷 도메인 이름 (예: my-log-bucket.s3.amazonaws.com). 비우면 로깅 비활성화"
+  type        = string
+  default     = ""
+}
+
+variable "logging_prefix" {
+  description = "CloudFront Standard Logs prefix"
+  type        = string
+  default     = "cloudfront/"
+}

@@ -177,6 +177,15 @@ resource "aws_cloudfront_distribution" "frontend" {
   default_root_object = "index.html"
   price_class         = var.price_class
 
+  dynamic "logging_config" {
+    for_each = var.logging_bucket_domain_name != "" ? [1] : []
+    content {
+      bucket          = var.logging_bucket_domain_name
+      include_cookies = false
+      prefix          = "${var.logging_prefix}frontend/"
+    }
+  }
+
   # 커스텀 도메인 (선택사항)
   aliases = var.use_custom_domain ? compact([var.frontend_domain, var.root_domain]) : []
 
@@ -258,6 +267,15 @@ resource "aws_cloudfront_distribution" "api" {
   comment         = "${var.project_name} ${var.environment} API"
   price_class     = var.price_class
 
+  dynamic "logging_config" {
+    for_each = var.logging_bucket_domain_name != "" ? [1] : []
+    content {
+      bucket          = var.logging_bucket_domain_name
+      include_cookies = false
+      prefix          = "${var.logging_prefix}api/"
+    }
+  }
+
   # 커스텀 도메인 (선택사항)
   aliases = var.use_custom_domain ? [var.api_domain] : []
 
@@ -329,6 +347,15 @@ resource "aws_cloudfront_distribution" "uploads" {
   comment          = "${var.project_name} ${var.environment} CDN (Public)"
   price_class      = var.price_class
 
+  dynamic "logging_config" {
+    for_each = var.logging_bucket_domain_name != "" ? [1] : []
+    content {
+      bucket          = var.logging_bucket_domain_name
+      include_cookies = false
+      prefix          = "${var.logging_prefix}uploads/"
+    }
+  }
+
   # 커스텀 도메인 (선택사항)
   aliases = var.use_custom_domain ? [var.cdn_domain] : []
 
@@ -384,6 +411,15 @@ resource "aws_cloudfront_distribution" "private_uploads" {
   is_ipv6_enabled = true
   comment         = "${var.project_name} ${var.environment} Private CDN (Signed URL Required)"
   price_class     = var.price_class
+
+  dynamic "logging_config" {
+    for_each = var.logging_bucket_domain_name != "" ? [1] : []
+    content {
+      bucket          = var.logging_bucket_domain_name
+      include_cookies = false
+      prefix          = "${var.logging_prefix}private-uploads/"
+    }
+  }
 
   # 커스텀 도메인 (선택사항)
   aliases = var.use_custom_domain && var.private_cdn_domain != "" ? [var.private_cdn_domain] : []
