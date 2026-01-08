@@ -161,6 +161,11 @@ variable "google_oauth_client_secret" {
   default   = null
 }
 
+variable "enable_ses" {
+  type    = bool
+  default = false
+}
+
 variable "ses_verified_email_addresses" {
   type    = list(string)
   default = []

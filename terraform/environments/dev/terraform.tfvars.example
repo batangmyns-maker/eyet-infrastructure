@@ -48,6 +48,8 @@ identity_verification_encryption_key    = null
 
 google_oauth_client_secret = null
 
+enable_ses = false
+
 ses_verified_email_addresses = []
 ses_additional_domains       = []
 ses_enable_dmarc             = false

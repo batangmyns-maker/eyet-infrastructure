@@ -312,11 +312,14 @@ module "acm" {
 
   project_name = var.project_name
   environment  = var.environment
-  domain_name  = "*.dev.${var.domain_name}"
+  domain_name  = "dev.${var.domain_name}"
 
   subject_alternative_names = [
     "dev.${var.domain_name}",
-    "*.dev.${var.domain_name}"
+    "dev.www.${var.domain_name}",
+    "dev.api.${var.domain_name}",
+    "dev.cdn.${var.domain_name}",
+    "dev.private-cdn.${var.domain_name}"
   ]
 }
 
@@ -348,13 +351,13 @@ resource "aws_acm_certificate_validation" "main" {
 }
 
 module "ses" {
-  count  = length(var.ses_verified_email_addresses) > 0 || true ? 1 : 0
+  count  = var.enable_ses ? 1 : 0
   source = "../../modules/ses"
 
   project_name             = var.project_name
   environment              = var.environment
-  domain_name              = var.domain_name
-  route53_zone_id          = data.aws_route53_zone.main.zone_id
+  domain_name              = ""
+  route53_zone_id          = ""
   verified_email_addresses = var.ses_verified_email_addresses
   enable_dmarc             = var.ses_enable_dmarc
   dmarc_email              = var.ses_dmarc_email
@@ -362,7 +365,7 @@ module "ses" {
 }
 
 module "ses_additional_domains" {
-  for_each = toset(var.ses_additional_domains)
+  for_each = var.enable_ses ? toset(var.ses_additional_domains) : toset([])
   source   = "../../modules/ses"
 
   project_name             = var.project_name
