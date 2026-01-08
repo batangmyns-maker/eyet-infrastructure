@@ -1,0 +1,7 @@
+project_name        = "bt-portal"
+environment         = "dev"
+aws_region          = "us-east-2"
+aws_profile         = null
+
+tfstate_bucket_name = "bt-portal-terraform-state-dev"
+tflock_table_name   = "bt-portal-terraform-locks-dev"

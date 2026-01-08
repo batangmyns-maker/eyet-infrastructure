@@ -1,0 +1,55 @@
+project_name   = "bt-portal"
+environment    = "dev"
+aws_region     = "us-east-2"
+aws_profile    = null
+
+terraform_role_arn = null
+
+terraform_sso_principal_arn       = null
+terraform_bootstrap_principal_arn = null
+
+domain_name = "eyet.kr"
+
+vpc_cidr = "10.10.0.0/16"
+availability_zones = ["us-east-2a", "us-east-2b"]
+public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24"]
+private_subnet_cidrs = ["10.10.11.0/24", "10.10.12.0/24"]
+
+trusted_operator_cidrs = ["112.222.28.115/32"]
+
+ec2_instance_type = "t2.small"
+
+rds_instance_class     = "db.t3.micro"
+rds_allocated_storage  = 20
+
+db_name     = "btportal_dev"
+db_username = "postgres"
+db_password = "CHANGE_ME"
+
+server_port = 18082
+
+cors_allowed_origins = [
+  "https://dev.www.eyet.kr"
+]
+
+jwt_secret_key    = "CHANGE_ME"
+toss_secret_key   = "CHANGE_ME"
+toss_security_key = "CHANGE_ME"
+openai_api_key    = null
+
+cloudfront_public_key     = null
+cloudfront_key_group_id  = null
+cloudfront_key_pair_id   = null
+cloudfront_private_key   = ""
+
+identity_verification_key_file_password = null
+identity_verification_client_prefix     = null
+identity_verification_encryption_key    = null
+
+google_oauth_client_secret = null
+
+ses_verified_email_addresses = []
+ses_additional_domains       = []
+ses_enable_dmarc             = false
+ses_dmarc_email              = ""
+ses_dmarc_policy             = "none"
