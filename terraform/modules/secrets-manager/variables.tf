@@ -54,6 +54,18 @@ variable "toss_security_key" {
   sensitive   = true
 }
 
+variable "toss_billing_secret_key" {
+  description = "Toss Payments Billing 시크릿 키"
+  type        = string
+  sensitive   = true
+}
+
+variable "toss_billing_security_key" {
+  description = "Toss Payments Billing 보안키"
+  type        = string
+  sensitive   = true
+}
+
 variable "openai_api_key" {
   description = "OpenAI API Key"
   type        = string

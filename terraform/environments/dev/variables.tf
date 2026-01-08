@@ -109,6 +109,18 @@ variable "toss_security_key" {
   sensitive = true
 }
 
+variable "toss_billing_secret_key" {
+  type      = string
+  sensitive = true
+  default   = null
+}
+
+variable "toss_billing_security_key" {
+  type      = string
+  sensitive = true
+  default   = null
+}
+
 variable "openai_api_key" {
   type      = string
   sensitive = true

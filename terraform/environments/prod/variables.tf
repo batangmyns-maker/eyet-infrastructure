@@ -181,6 +181,20 @@ variable "toss_security_key" {
   default     = null  # prod 환경에서만 사용
 }
 
+variable "toss_billing_secret_key" {
+  description = "토스페이먼츠 Billing 시크릿 키"
+  type        = string
+  sensitive   = true
+  default     = null  # prod 환경에서만 사용
+}
+
+variable "toss_billing_security_key" {
+  description = "토스페이먼츠 Billing 보안키"
+  type        = string
+  sensitive   = true
+  default     = null  # prod 환경에서만 사용
+}
+
 variable "openai_api_key" {
   description = "OpenAI API Key"
   type        = string

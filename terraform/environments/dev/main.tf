@@ -148,6 +148,8 @@ module "secrets_manager" {
   jwt_secret_key          = var.jwt_secret_key
   toss_secret_key         = var.toss_secret_key
   toss_security_key       = var.toss_security_key
+  toss_billing_secret_key   = var.toss_billing_secret_key
+  toss_billing_security_key = var.toss_billing_security_key
   openai_api_key          = var.openai_api_key
   cloudfront_private_key  = var.cloudfront_private_key
   identity_verification_key_file_password = var.identity_verification_key_file_password

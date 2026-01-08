@@ -68,6 +68,8 @@ resource "aws_secretsmanager_secret_version" "toss_secret" {
   secret_string = jsonencode({
     "toss-secret-key" = var.toss_secret_key
     "toss-security-key" = var.toss_security_key
+    "toss-billing-secret-key" = var.toss_billing_secret_key
+    "toss-billing-security-key" = var.toss_billing_security_key
   })
 }
 
