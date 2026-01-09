@@ -45,6 +45,7 @@ cloudfront_private_key   = ""
 identity_verification_key_file_password = null
 identity_verification_client_prefix     = null
 identity_verification_encryption_key    = null
+identity_verification_matching_key      = null
 
 google_oauth_client_secret = null
 

@@ -133,6 +133,7 @@ module "secrets_manager" {
   identity_verification_key_file_password = var.identity_verification_key_file_password
   identity_verification_client_prefix     = var.identity_verification_client_prefix
   identity_verification_encryption_key    = var.identity_verification_encryption_key
+  identity_verification_matching_key      = var.identity_verification_matching_key
   google_oauth_client_secret              = var.google_oauth_client_secret
 
   depends_on = [module.rds]

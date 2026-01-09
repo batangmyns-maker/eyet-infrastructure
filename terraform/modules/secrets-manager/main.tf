@@ -133,6 +133,7 @@ resource "aws_secretsmanager_secret_version" "identity_verification" {
     "key-file-password" = var.identity_verification_key_file_password
     "client-prefix"     = var.identity_verification_client_prefix
     "encryption-key"    = var.identity_verification_encryption_key != null ? var.identity_verification_encryption_key : ""
+    "matching-key"      = var.identity_verification_matching_key != null ? var.identity_verification_matching_key : ""
   })
 }
 
