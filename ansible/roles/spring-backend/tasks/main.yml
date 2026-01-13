@@ -24,17 +24,29 @@
     groups: docker
     append: true
 
-- name: Check docker-compose binary
-  ansible.builtin.stat:
-    path: /usr/local/bin/docker-compose
-  register: docker_compose_stat
+- name: Install Docker Compose v2 (docker compose)
+  ansible.builtin.package:
+    name:
+      - docker-compose-plugin
+    state: present
+  register: docker_compose_plugin_pkg
+  failed_when: false
 
-- name: Install Docker Compose (standalone)
+- name: Ensure Docker CLI plugins directory exists (fallback)
+  ansible.builtin.file:
+    path: /usr/local/lib/docker/cli-plugins
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: docker_compose_plugin_pkg is failed
+
+- name: Install Docker Compose v2 plugin (binary fallback)
   ansible.builtin.get_url:
     url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64"
-    dest: /usr/local/bin/docker-compose
+    dest: /usr/local/lib/docker/cli-plugins/docker-compose
     mode: "0755"
-  when: not docker_compose_stat.stat.exists
+  when: docker_compose_plugin_pkg is failed
 
 - name: Ensure /app directories exist
   ansible.builtin.file:
