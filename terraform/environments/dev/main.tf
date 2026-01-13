@@ -305,6 +305,54 @@ resource "aws_s3_bucket_lifecycle_configuration" "file_transfer" {
   }
 }
 
+resource "aws_s3_bucket" "deploy_artifacts" {
+  bucket = "${var.project_name}-backend-${var.environment}-deploy-artifacts"
+
+  tags = {
+    Name        = "${var.project_name}-backend-${var.environment}-deploy-artifacts"
+    Environment = var.environment
+    Project     = var.project_name
+    Purpose     = "Deploy Artifacts CI to EC2"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "deploy_artifacts" {
+  bucket = aws_s3_bucket.deploy_artifacts.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "deploy_artifacts" {
+  bucket = aws_s3_bucket.deploy_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "deploy_artifacts" {
+  bucket = aws_s3_bucket.deploy_artifacts.id
+
+  rule {
+    id     = "expire-old-artifacts"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
+
+    expiration {
+      days = 30
+    }
+  }
+}
+
 module "acm" {
   source = "../../modules/acm"
 
@@ -404,6 +452,7 @@ module "ec2" {
   root_volume_size          = 50
   uploads_bucket_name       = module.s3.uploads_bucket_id
   file_transfer_bucket_name = aws_s3_bucket.file_transfer.id
+  deploy_artifacts_bucket_name = aws_s3_bucket.deploy_artifacts.id
   aws_region                = var.aws_region
 
   db_host     = module.rds.db_instance_address

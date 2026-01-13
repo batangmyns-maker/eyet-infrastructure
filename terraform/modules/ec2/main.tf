@@ -55,6 +55,17 @@ resource "aws_iam_role_policy" "s3_access" {
           "arn:aws:s3:::${var.file_transfer_bucket_name}",
           "arn:aws:s3:::${var.file_transfer_bucket_name}/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.deploy_artifacts_bucket_name}",
+          "arn:aws:s3:::${var.deploy_artifacts_bucket_name}/*"
+        ]
       }
     ]
   })
@@ -158,6 +169,11 @@ resource "aws_iam_role_policy" "ses_access" {
 resource "aws_iam_role_policy_attachment" "ssm_managed_instance" {
   role       = aws_iam_role.ec2.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "ecr_read_only" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
 # IAM Instance Profile

@@ -11,9 +11,7 @@ variable "environment" {
 variable "ami_id" {
   description = "AMI ID (Amazon Linux 2023 kernel-6.1 권장)"
   type        = string
-  # Amazon Linux 2023 kernel-6.1 AMI (서울 리전)
-  # 5년 장기 지원(LTS) 제공
-  default = "ami-04fcc2023d6e37430"  # Amazon Linux 2023 kernel-6.1 x86_64 (ap-northeast-2)
+  default     = null
 }
 
 variable "instance_type" {
@@ -51,6 +49,11 @@ variable "uploads_bucket_name" {
 
 variable "file_transfer_bucket_name" {
   description = "파일 이동용 S3 버킷 이름 (로컬 -> EC2)"
+  type        = string
+}
+
+variable "deploy_artifacts_bucket_name" {
+  description = "배포 아티팩트 S3 버킷 이름 (CI -> S3 -> EC2)"
   type        = string
 }
 

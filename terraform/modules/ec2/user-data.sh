@@ -21,18 +21,10 @@ sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -aG docker ec2-user
 
-# Docker Compose 설치
-echo "Installing Docker Compose..."
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
 # CloudWatch Logs Agent 설치
 echo "Installing CloudWatch Logs Agent..."
 sudo yum install -y amazon-cloudwatch-agent
 
-# Git 설치
-echo "Installing Git..."
-sudo yum install -y git
 
 # 애플리케이션 디렉터리 생성
 echo "Creating application directories..."
