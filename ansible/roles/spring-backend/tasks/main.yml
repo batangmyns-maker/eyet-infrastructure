@@ -1,0 +1,63 @@
+- name: Install baseline packages
+  ansible.builtin.package:
+    name:
+      - git
+      - ca-certificates
+      - tar
+      - unzip
+    state: present
+
+- name: Install Docker
+  ansible.builtin.package:
+    name: docker
+    state: present
+
+- name: Enable and start Docker service
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add user to docker group
+  ansible.builtin.user:
+    name: "{{ dev_server_user }}"
+    groups: docker
+    append: true
+
+- name: Check docker-compose binary
+  ansible.builtin.stat:
+    path: /usr/local/bin/docker-compose
+  register: docker_compose_stat
+
+- name: Install Docker Compose (standalone)
+  ansible.builtin.get_url:
+    url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64"
+    dest: /usr/local/bin/docker-compose
+    mode: "0755"
+  when: not docker_compose_stat.stat.exists
+
+- name: Ensure /app directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ dev_server_user | default('ec2-user') }}"
+    group: "{{ dev_server_user | default('ec2-user') }}"
+    mode: "0755"
+  loop:
+    - /app
+    - /app/uploaded-files
+    - /app/logs
+
+- name: Deploy CloudWatch Agent configuration (J2 Template)
+  ansible.builtin.template:
+    src: amazon-cloudwatch-agent.json.j2
+    dest: /etc/amazon/amazon-cloudwatch-agent/amazon-cloudwatch-agent.json
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Apply CloudWatch Agent configuration
+  ansible.builtin.command:
+    # 전송한 JSON 파일을 기반으로 에이전트 설정 반영
+    cmd: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/etc/amazon/amazon-cloudwatch-agent/amazon-cloudwatch-agent.json -s
+  become: true

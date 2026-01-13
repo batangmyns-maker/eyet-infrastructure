@@ -1,0 +1,22 @@
+---
+- name: Server baseline setup
+  # 실행 시 -e "target=dev" 혹은 -e "target=prod"로 넘겨받을 수 있게 변수화
+  hosts: "{{ target | default('dev') }}"
+  gather_facts: false
+
+  pre_tasks:
+    - name: Wait for system to be ready
+      wait_for_connection:
+        timeout: 60
+
+    - name: Gather facts after connection
+      setup:
+
+  roles:
+    # 이제 spring-backend 역할 하나로 dev/prod를 모두 처리합니다.
+    - spring-backend
+
+  post_tasks:
+    - name: Verify setup
+      debug:
+        msg: "Server {{ inventory_hostname }} setup completed in {{ env_name }} environment"
