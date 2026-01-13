@@ -42,6 +42,12 @@ variable "root_volume_size" {
   default     = 30
 }
 
+variable "imds_http_put_response_hop_limit" {
+  description = "IMDS hop limit (container access 등 필요 시 2 이상)"
+  type        = number
+  default     = 1
+}
+
 variable "uploads_bucket_name" {
   description = "파일 업로드용 S3 버킷 이름"
   type        = string

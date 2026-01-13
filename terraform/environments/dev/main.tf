@@ -481,6 +481,7 @@ module "ec2" {
   public_subnet_ids         = module.vpc.public_subnet_ids
   security_group_id         = module.security_groups.ec2_security_group_id
   root_volume_size          = 50
+  imds_http_put_response_hop_limit = 2
   uploads_bucket_name       = module.s3.uploads_bucket_id
   file_transfer_bucket_name = aws_s3_bucket.file_transfer.id
   deploy_artifacts_bucket_name = aws_s3_bucket.deploy_artifacts.id
