@@ -439,6 +439,37 @@ resource "aws_cloudwatch_log_group" "bt_portal_backend" {
   }
 }
 
+resource "aws_ecr_repository" "bt_portal_backend_dev" {
+  name                 = "bt-portal-backend-dev"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "bt_portal_backend_dev" {
+  repository = aws_ecr_repository.bt_portal_backend_dev.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Expire untagged images"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 7
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
 module "ec2" {
   source = "../../modules/ec2"
 

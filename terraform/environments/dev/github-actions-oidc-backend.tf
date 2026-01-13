@@ -41,7 +41,10 @@ resource "aws_iam_role" "github_actions_backend_deploy" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:${var.github_actions_backend_repo}:ref:refs/heads/${var.github_actions_backend_branch}"
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:${var.github_actions_backend_repo}:ref:refs/heads/${var.github_actions_backend_branch}",
+              "repo:${var.github_actions_backend_repo}:environment:${var.environment}"
+            ]
           }
         }
       }
@@ -66,12 +69,26 @@ resource "aws_iam_policy" "github_actions_backend_deploy" {
         Effect = "Allow"
         Action = [
           "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
           "ecr:CompleteLayerUpload",
+          "ecr:DescribeImages",
+          "ecr:DescribeRepositories",
+          "ecr:GetDownloadUrlForLayer",
           "ecr:InitiateLayerUpload",
+          "ecr:ListImages",
           "ecr:PutImage",
           "ecr:UploadLayerPart"
         ]
         Resource = "arn:${data.aws_partition.current.partition}:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/bt-portal-backend-dev"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations"
+        ]
+        Resource = "*"
       },
       {
         Effect = "Allow"
