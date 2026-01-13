@@ -88,3 +88,5 @@ identity_verification_encryption_key    = "CHANGE_ME_BASE64_ENCODED_32_BYTE_KEY"
 # Google OAuth 설정
 google_oauth_client_secret = "GOCSPX-..."  # 🔐 Google OAuth Client Secret (Google Cloud Console에서 발급받은 값)
 
+# github actions oidc
+github_actions_backend_repo = "batangmyns-maker/eyet-backend"
