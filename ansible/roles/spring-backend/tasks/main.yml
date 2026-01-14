@@ -73,3 +73,18 @@
     # 전송한 JSON 파일을 기반으로 에이전트 설정 반영
     cmd: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/etc/amazon/amazon-cloudwatch-agent/amazon-cloudwatch-agent.json -s
   become: true
+
+# Docker 컨테이너가 IMDS 접근하도록 iptables 설정 (dev only)
+- name: Configure Docker IMDS access
+  when: env_name | default('dev') == 'dev'
+  block:
+    - name: Add iptables rules for IMDS
+      ansible.builtin.shell: |
+        iptables -t nat -C PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j ACCEPT 2>/dev/null || \
+          iptables -t nat -A PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j ACCEPT
+        iptables -t nat -C OUTPUT -p tcp -d 169.254.169.254 --dport 80 -j ACCEPT 2>/dev/null || \
+          iptables -t nat -A OUTPUT -p tcp -d 169.254.169.254 --dport 80 -j ACCEPT
+
+    - name: Persist iptables (RedHat)
+      ansible.builtin.shell: iptables-save > /etc/sysconfig/iptables
+      when: ansible_os_family == "RedHat"
