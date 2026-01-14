@@ -22,6 +22,8 @@ resource "aws_iam_role" "ec2" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 # IAM Policy for S3 Access (파일 업로드용)
 resource "aws_iam_role_policy" "s3_access" {
   name = "${var.project_name}-${var.environment}-s3-access"
@@ -110,7 +112,10 @@ resource "aws_iam_role_policy" "secrets_manager_access" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ]
-        Resource = var.secret_arns
+        Resource = distinct(concat(
+          var.secret_arns,
+          ["arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:/bt-portal/${var.environment}/*"]
+        ))
       },
       {
         Effect = "Allow"
