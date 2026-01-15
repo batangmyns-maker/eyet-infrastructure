@@ -8,7 +8,7 @@
       "files": {
         "collect_list": [
           {
-            "file_path": "/home/ec2-user/logs/{{ env_name }}/*.log",
+            "file_path": "{{ log_path_prefix }}/{{ env_name }}/*.log",
             "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
             "log_stream_name": "{file_name}-{{ ansible_hostname }}",
             "retention_in_days": 7
