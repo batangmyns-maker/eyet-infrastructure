@@ -45,4 +45,6 @@ ansible-playbook -i inventory/dev.ini playbooks/setup.yml
 
 ## 운영 환경
 
-ansible-playbook -i inventory/prod.ini playbooks/setup.yml
+ansible-playbook -i inventory/prod.ini playbooks/setup.yml -e target=prod --check
+
+ansible-playbook -i inventory/prod.ini playbooks/setup.yml -e target=prod

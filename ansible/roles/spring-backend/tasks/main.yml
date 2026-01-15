@@ -20,7 +20,7 @@
 
 - name: Add user to docker group
   ansible.builtin.user:
-    name: "{{ dev_server_user }}"
+    name: "{{ server_user }}"
     groups: docker
     append: true
 
@@ -52,8 +52,8 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ dev_server_user | default('ec2-user') }}"
-    group: "{{ dev_server_user | default('ec2-user') }}"
+    owner: "{{ server_user | default('ec2-user') }}"
+    group: "{{ server_user | default('ec2-user') }}"
     mode: "0755"
   loop:
     - /app
