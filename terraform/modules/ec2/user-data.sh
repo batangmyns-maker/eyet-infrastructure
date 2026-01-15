@@ -99,40 +99,40 @@ EOF
 sudo chown ec2-user:ec2-user /app/docker-compose.yml
 
 # Nginx 설치 (리버스 프록시)
-echo "Installing Nginx..."
-sudo amazon-linux-extras enable nginx1
-sudo yum install -y nginx
+# echo "Installing Nginx..."
+# sudo amazon-linux-extras enable nginx1
+# sudo yum install -y nginx
 
 # Nginx 설정
-echo "Configuring Nginx..."
-cat <<EOF | sudo tee /etc/nginx/conf.d/api.conf
-upstream backend_app {
-    server 127.0.0.1:${server_port};
-}
+# echo "Configuring Nginx..."
+# cat <<EOF | sudo tee /etc/nginx/conf.d/api.conf
+# upstream backend_app {
+#     server 127.0.0.1:${server_port};
+# }
 
-server {
-    listen 80;
-    server_name %{ if api_domain != "" ~}${api_domain}%{ else ~}_%{ endif ~};
+# server {
+#     listen 80;
+#     server_name %{ if api_domain != "" ~}${api_domain}%{ else ~}_%{ endif ~};
 
-    # CloudFront가 큰 파일도 업로드할 수 있도록 필요한 값만 조정
-    client_max_body_size 1G;
+#     # CloudFront가 큰 파일도 업로드할 수 있도록 필요한 값만 조정
+#     client_max_body_size 1G;
 
-    location / {
-        proxy_pass http://backend_app;
-        proxy_http_version 1.1;
-        proxy_set_header Host $$host;
-        proxy_set_header X-Real-IP $$remote_addr;
-        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $$scheme;
-        proxy_set_header Connection "";
-        proxy_read_timeout 300;
-        proxy_send_timeout 300;
-    }
-}
-EOF
+#     location / {
+#         proxy_pass http://backend_app;
+#         proxy_http_version 1.1;
+#         proxy_set_header Host $$host;
+#         proxy_set_header X-Real-IP $$remote_addr;
+#         proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $$scheme;
+#         proxy_set_header Connection "";
+#         proxy_read_timeout 300;
+#         proxy_send_timeout 300;
+#     }
+# }
+# EOF
 
-sudo systemctl start nginx
-sudo systemctl enable nginx
+# sudo systemctl start nginx
+# sudo systemctl enable nginx
 
 # CloudWatch Logs 설정
 echo "Configuring CloudWatch Logs..."
