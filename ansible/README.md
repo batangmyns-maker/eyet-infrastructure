@@ -62,13 +62,17 @@ SSM 연결은 IP가 아니라 **instance id**로 붙습니다.
 dev에만 적용:
 
 ```powershell
-ansible-playbook -i ansible/inventory/dev.ini ansible/playbooks/dev-setup.yml --limit dev
+wsl
+ansible-playbook -i inventory/dev.ini playbooks/setup.yml --check
+ansible-playbook -i inventory/dev.ini playbooks/setup.yml
 ```
 
 prod에만 적용:
 
 ```powershell
-ansible-playbook -i ansible/inventory/dev.ini ansible/playbooks/dev-setup.yml --limit prod
+wsl
+ansible-playbook -i inventory/prod.ini playbooks/setup.yml --check
+ansible-playbook -i inventory/prod.ini playbooks/setup.yml
 ```
 
 ## 핵심 개념 정리

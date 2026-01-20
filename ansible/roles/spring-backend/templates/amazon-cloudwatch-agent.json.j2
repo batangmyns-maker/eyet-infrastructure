@@ -8,37 +8,37 @@
       "files": {
         "collect_list": [
           {
-            "file_path": "{{ log_path_prefix }}/{{ env_name }}/application.log",
+            "file_path": "{{ log_path_prefix }}/application.log",
             "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
             "log_stream_name": "application-{instance_id}",
             "retention_in_days": 7
           },
           {
-            "file_path": "{{ log_path_prefix }}/{{ env_name }}/access.log",
+            "file_path": "{{ log_path_prefix }}/access.log",
             "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
             "log_stream_name": "access-{instance_id}",
             "retention_in_days": 7
           },
           {
-            "file_path": "{{ log_path_prefix }}/{{ env_name }}/error.log",
+            "file_path": "{{ log_path_prefix }}/error.log",
             "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
             "log_stream_name": "error-{instance_id}",
             "retention_in_days": 7
           },
           {
-            "file_path": "{{ log_path_prefix }}/{{ env_name }}/sql.log",
+            "file_path": "{{ log_path_prefix }}/sql.log",
             "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
             "log_stream_name": "sql-{instance_id}",
             "retention_in_days": 7
           },
           {
-            "file_path": "{{ log_path_prefix }}/{{ env_name }}/workflow-scheduler.log",
+            "file_path": "{{ log_path_prefix }}/workflow-scheduler.log",
             "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
             "log_stream_name": "workflow-scheduler-{instance_id}",
             "retention_in_days": 7
           },
           {
-            "file_path": "{{ log_path_prefix }}/{{ env_name }}/license-subscription-scheduler.log",
+            "file_path": "{{ log_path_prefix }}/license-subscription-scheduler.log",
             "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
             "log_stream_name": "license-subscription-scheduler-{instance_id}",
             "retention_in_days": 7

@@ -14,7 +14,7 @@
 
   roles:
     # 이제 spring-backend 역할 하나로 dev/prod를 모두 처리합니다.
-    - spring-backend
+    - role: "../roles/spring-backend"
 
   post_tasks:
     - name: Verify setup

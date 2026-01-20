@@ -76,7 +76,6 @@
 
 # Docker 컨테이너가 IMDS 접근하도록 iptables 설정 (dev only)
 - name: Configure Docker IMDS access
-  when: env_name | default('dev') == 'dev'
   block:
     - name: Add iptables rules for IMDS
       ansible.builtin.shell: |
