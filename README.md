@@ -6,9 +6,9 @@ aws sso login --profile bt-sso
 
 ## 운영 환경
 
-cd terraform/global/s3_tfstate
+cd terraform/enviroments/prod
 terraform init
-terraform plan -var-file="prod.tfvars"
+terraform plan
 terraform apply -var-file="prod.tfvars"
 
 cd terraform/enviroments/prod
@@ -18,7 +18,7 @@ terraform apply
 
 ## 개발 환경
 
-cd terraform/global/s3_tfstate
+cd terraform/enviroments/dev
 terraform init
 terraform plan -var-file="dev.tfvars"
 terraform apply -var-file="dev.tfvars"

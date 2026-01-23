@@ -808,6 +808,23 @@ resource "aws_s3_bucket_policy" "private_files" {
             "AWS:SourceArn" = module.cloudfront.private_uploads_distribution_arn
           }
         }
+      },
+      {
+        Sid    = "AllowBackendEc2RoleAccess"
+        Effect = "Allow"
+        Principal = {
+          AWS = module.ec2.iam_role_arn
+        }
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          module.s3.private_files_bucket_arn,
+          "${module.s3.private_files_bucket_arn}/*"
+        ]
       }
     ]
   })
