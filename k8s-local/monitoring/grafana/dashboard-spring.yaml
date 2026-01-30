@@ -1,0 +1,159 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-spring
+  namespace: monitoring
+data:
+  spring-boot.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "spring-boot-overview",
+        "title": "Spring Boot Overview",
+        "timezone": "browser",
+        "refresh": "10s",
+        "time": { "from": "now-30m", "to": "now" },
+        "panels": [
+          {
+            "id": 1,
+            "title": "HTTP Request Rate (req/s)",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+            "targets": [
+              {
+                "expr": "rate(http_server_requests_seconds_count{application=\"spring-app\"}[1m])",
+                "legendFormat": "{{method}} {{uri}} [{{status}}]"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "HTTP Response Time (p95)",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"spring-app\"}[5m]))",
+                "legendFormat": "{{method}} {{uri}}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "JVM Heap Memory",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+            "targets": [
+              {
+                "expr": "jvm_memory_used_bytes{application=\"spring-app\", area=\"heap\"}",
+                "legendFormat": "{{id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "bytes" }
+            }
+          },
+          {
+            "id": 4,
+            "title": "JVM GC Pause Time",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+            "targets": [
+              {
+                "expr": "rate(jvm_gc_pause_seconds_sum{application=\"spring-app\"}[1m])",
+                "legendFormat": "{{action}} - {{cause}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "s" }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Active Threads",
+            "type": "stat",
+            "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
+            "targets": [
+              {
+                "expr": "jvm_threads_live_threads{application=\"spring-app\"}"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "CPU Usage",
+            "type": "gauge",
+            "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 },
+            "targets": [
+              {
+                "expr": "process_cpu_usage{application=\"spring-app\"}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "percentunit", "max": 1 }
+            }
+          },
+          {
+            "id": 7,
+            "title": "Uptime",
+            "type": "stat",
+            "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
+            "targets": [
+              {
+                "expr": "process_uptime_seconds{application=\"spring-app\"}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "s" }
+            }
+          },
+          {
+            "id": 8,
+            "title": "HTTP Error Rate (5xx)",
+            "type": "stat",
+            "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
+            "targets": [
+              {
+                "expr": "sum(rate(http_server_requests_seconds_count{application=\"spring-app\", status=~\"5..\"}[5m]))"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "reqps" }
+            }
+          },
+          {
+            "id": 9,
+            "title": "HikariCP Active Connections",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+            "targets": [
+              {
+                "expr": "hikaricp_connections_active{application=\"spring-app\"}",
+                "legendFormat": "active"
+              },
+              {
+                "expr": "hikaricp_connections_idle{application=\"spring-app\"}",
+                "legendFormat": "idle"
+              },
+              {
+                "expr": "hikaricp_connections_max{application=\"spring-app\"}",
+                "legendFormat": "max"
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "title": "Log Events Rate",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+            "targets": [
+              {
+                "expr": "rate(logback_events_total{application=\"spring-app\"}[1m])",
+                "legendFormat": "{{level}}"
+              }
+            ]
+          }
+        ],
+        "schemaVersion": 39
+      }
+    }
