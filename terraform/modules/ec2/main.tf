@@ -181,6 +181,11 @@ resource "aws_iam_role_policy_attachment" "ecr_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 # IAM Instance Profile
 resource "aws_iam_instance_profile" "ec2" {
   name = "${var.project_name}-${var.environment}-ec2-profile"
@@ -257,7 +262,7 @@ resource "aws_instance" "main" {
   }
 
   lifecycle {
-    ignore_changes = [user_data]  # AMI는 변경 가능하도록 제거
+    ignore_changes = [user_data, ami]
   }
 }
 
@@ -287,6 +292,9 @@ resource "aws_cloudwatch_metric_alarm" "cpu" {
   threshold           = "80"
   alarm_description   = "This metric monitors EC2 CPU utilization"
 
+  alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
+  ok_actions    = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
+
   dimensions = {
     InstanceId = aws_instance.main.id
   }
@@ -310,12 +318,70 @@ resource "aws_cloudwatch_metric_alarm" "status_check" {
   threshold           = "0"
   alarm_description   = "This metric monitors EC2 status checks"
 
+  alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
+  ok_actions    = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
+
   dimensions = {
     InstanceId = aws_instance.main.id
   }
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-ec2-status-alarm"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# CloudWatch Alarm - Memory 사용률 (CWAgent)
+resource "aws_cloudwatch_metric_alarm" "memory" {
+  alarm_name          = "${var.project_name}-${var.environment}-ec2-memory"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "mem_used_percent"
+  namespace           = "CWAgent"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "80"
+  alarm_description   = "This metric monitors EC2 memory utilization"
+
+  alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
+  ok_actions    = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
+
+  dimensions = {
+    InstanceId = aws_instance.main.id
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-ec2-memory-alarm"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# CloudWatch Alarm - Disk 사용률 (CWAgent)
+resource "aws_cloudwatch_metric_alarm" "disk" {
+  alarm_name          = "${var.project_name}-${var.environment}-ec2-disk"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "disk_used_percent"
+  namespace           = "CWAgent"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "85"
+  alarm_description   = "This metric monitors EC2 disk utilization"
+
+  alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
+  ok_actions    = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
+
+  dimensions = {
+    InstanceId = aws_instance.main.id
+    path       = "/"
+    fstype     = "xfs"
+    device     = "nvme0n1p1"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-ec2-disk-alarm"
     Environment = var.environment
     Project     = var.project_name
   }

@@ -157,3 +157,9 @@ variable "api_domain" {
   type        = string
   default     = ""
 }
+
+variable "sns_topic_arn" {
+  description = "SNS Topic ARN for CloudWatch alarm notifications"
+  type        = string
+  default     = ""
+}

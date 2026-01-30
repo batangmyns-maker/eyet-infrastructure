@@ -202,3 +202,8 @@ variable "ses_additional_domains" {
   type    = list(string)
   default = []
 }
+
+variable "alarm_email" {
+  type      = string
+  sensitive = true
+}

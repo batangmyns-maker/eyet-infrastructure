@@ -505,6 +505,7 @@ module "ec2" {
   cloudfront_key_pair_id     = local.effective_cloudfront_key_pair_id
   cloudwatch_log_group_arn   = aws_cloudwatch_log_group.bt_portal_backend.arn
   api_domain                 = "dev.api.${var.domain_name}"
+  sns_topic_arn              = aws_sns_topic.alarm.arn
 
   depends_on = [module.rds, module.secrets_manager, aws_cloudwatch_log_group.bt_portal_backend]
 }
@@ -830,4 +831,112 @@ resource "aws_s3_bucket_policy" "private_files" {
   })
 
   depends_on = [module.cloudfront]
+}
+
+# ─── Monitoring: SNS Topic + Email ───
+
+resource "aws_sns_topic" "alarm" {
+  name = "${var.project_name}-${var.environment}-alarm"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-alarm"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_sns_topic_subscription" "alarm_email" {
+  topic_arn = aws_sns_topic.alarm.arn
+  protocol  = "email"
+  endpoint  = var.alarm_email
+}
+
+# ─── Monitoring: CloudFront Alarms (API Distribution) ───
+
+resource "aws_cloudwatch_metric_alarm" "cloudfront_5xx" {
+  alarm_name          = "${var.project_name}-${var.environment}-cloudfront-api-5xx"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "5xxErrorRate"
+  namespace           = "AWS/CloudFront"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "1"
+  alarm_description   = "CloudFront API distribution 5xx error rate > 1%"
+
+  alarm_actions = [aws_sns_topic.alarm.arn]
+  ok_actions    = [aws_sns_topic.alarm.arn]
+
+  dimensions = {
+    DistributionId = module.cloudfront.api_distribution_id
+    Region         = "Global"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-cloudfront-api-5xx-alarm"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "cloudfront_4xx" {
+  alarm_name          = "${var.project_name}-${var.environment}-cloudfront-api-4xx"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "4xxErrorRate"
+  namespace           = "AWS/CloudFront"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "5"
+  alarm_description   = "CloudFront API distribution 4xx error rate > 5%"
+
+  alarm_actions = [aws_sns_topic.alarm.arn]
+  ok_actions    = [aws_sns_topic.alarm.arn]
+
+  dimensions = {
+    DistributionId = module.cloudfront.api_distribution_id
+    Region         = "Global"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-cloudfront-api-4xx-alarm"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# ─── Monitoring: Log-based Error Detection ───
+
+resource "aws_cloudwatch_log_metric_filter" "error_log" {
+  name           = "${var.project_name}-${var.environment}-error-log-filter"
+  log_group_name = aws_cloudwatch_log_group.bt_portal_backend.name
+  pattern        = "ERROR"
+
+  metric_transformation {
+    name          = "${var.project_name}-${var.environment}-error-log-count"
+    namespace     = "${var.project_name}/${var.environment}"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "error_log" {
+  alarm_name          = "${var.project_name}-${var.environment}-error-log"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "${var.project_name}-${var.environment}-error-log-count"
+  namespace           = "${var.project_name}/${var.environment}"
+  period              = "300"
+  statistic           = "Sum"
+  threshold           = "5"
+  alarm_description   = "Error log count >= 5 in 5 minutes"
+
+  alarm_actions = [aws_sns_topic.alarm.arn]
+  ok_actions    = [aws_sns_topic.alarm.arn]
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-error-log-alarm"
+    Environment = var.environment
+    Project     = var.project_name
+  }
 }

@@ -21,6 +21,13 @@ sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -aG docker ec2-user
 
+# Docker Compose v2 plugin 설치
+echo "Installing Docker Compose v2 plugin..."
+DOCKER_CONFIG=/root/.docker
+mkdir -p $DOCKER_CONFIG/cli-plugins
+curl -SL https://github.com/docker/compose/releases/download/v2.24.6/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+
 # CloudWatch Logs Agent 설치
 echo "Installing CloudWatch Logs Agent..."
 sudo yum install -y amazon-cloudwatch-agent
@@ -139,7 +146,7 @@ echo "Configuring CloudWatch Logs..."
 # 실제 로그 경로 확인 및 디렉토리 생성 (ssm-user 권한)
 # CloudWatch Logs Agent가 읽을 수 있도록 권한 설정
 sudo mkdir -p /home/ssm-user/eyet-backend/logs
-sudo chown -R ssm-user:ssm-user /home/ssm-user/eyet-backend
+sudo chown -R ssm-user:ssm-user /home/ssm-user
 # CloudWatch Logs Agent (cwagent 사용자)가 로그 파일을 읽을 수 있도록 권한 부여
 sudo chmod -R 755 /home/ssm-user/eyet-backend/logs || true
 

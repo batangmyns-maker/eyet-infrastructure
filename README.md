@@ -40,8 +40,8 @@ aws sso login
 
 ## 개발 환경
 
-ansible-playbook -i inventory/dev.ini playbooks/setup.yml --check
-ansible-playbook -i inventory/dev.ini playbooks/setup.yml
+ansible-playbook playbooks/setup.yml -i inventory/dev.ini -e target=dev --check
+ansible-playbook playbooks/setup.yml -i inventory/dev.ini -e target=dev
 
 ## 운영 환경
 
