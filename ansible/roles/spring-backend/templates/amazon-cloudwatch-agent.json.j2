@@ -65,6 +65,18 @@
             "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
             "log_stream_name": "license-subscription-scheduler-{instance_id}",
             "retention_in_days": 7
+          },
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
+            "log_stream_name": "nginx-access-{instance_id}",
+            "retention_in_days": 7
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "/aws/ec2/bt-portal-backend/{{ env_name }}",
+            "log_stream_name": "nginx-error-{instance_id}",
+            "retention_in_days": 7
           }
         ]
       }

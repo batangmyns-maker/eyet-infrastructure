@@ -141,73 +141,8 @@ sudo chown ec2-user:ec2-user /app/docker-compose.yml
 # sudo systemctl start nginx
 # sudo systemctl enable nginx
 
-# CloudWatch Logs 설정
-echo "Configuring CloudWatch Logs..."
-# 실제 로그 경로 확인 및 디렉토리 생성 (ssm-user 권한)
-# CloudWatch Logs Agent가 읽을 수 있도록 권한 설정
-sudo mkdir -p /home/ssm-user/eyet-backend/logs
-sudo chown -R ssm-user:ssm-user /home/ssm-user
-# CloudWatch Logs Agent (cwagent 사용자)가 로그 파일을 읽을 수 있도록 권한 부여
-sudo chmod -R 755 /home/ssm-user/eyet-backend/logs || true
-
-cat <<EOF | sudo tee /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-{
-  "logs": {
-    "logs_collected": {
-      "files": {
-        "collect_list": [
-          {
-            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/application.log",
-            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
-            "log_stream_name": "application-{instance_id}"
-          },
-          {
-            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/access.log",
-            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
-            "log_stream_name": "access-{instance_id}"
-          },
-          {
-            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/error.log",
-            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
-            "log_stream_name": "error-{instance_id}"
-          },
-          {
-            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/sql.log",
-            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
-            "log_stream_name": "sql-{instance_id}"
-          },
-          {
-            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/workflow-scheduler.log",
-            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
-            "log_stream_name": "workflow-scheduler-{instance_id}"
-          },
-          {
-            "file_path": "/home/ssm-user/eyet-backend/logs/${environment}/license-subscription-scheduler.log",
-            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
-            "log_stream_name": "license-subscription-scheduler-{instance_id}"
-          },
-          {
-            "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
-            "log_stream_name": "nginx-access-{instance_id}"
-          },
-          {
-            "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "/aws/ec2/bt-portal-backend/${environment}",
-            "log_stream_name": "nginx-error-{instance_id}"
-          }
-        ]
-      }
-    }
-  }
-}
-EOF
-
-sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-    -a fetch-config \
-    -m ec2 \
-    -s \
-    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+# CloudWatch Agent 설정은 Ansible에서 통합 관리합니다.
+# (ansible/roles/spring-backend/templates/amazon-cloudwatch-agent.json.j2)
 
 # 배포 스크립트 생성
 echo "Creating deployment script..."

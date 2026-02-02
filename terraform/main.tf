@@ -675,7 +675,7 @@ resource "aws_acm_certificate_validation" "main" {
 # 5-3단계: CloudWatch Logs (백엔드 로그 관리)
 resource "aws_cloudwatch_log_group" "bt_portal_backend" {
   name              = "/aws/ec2/bt-portal-backend/${var.environment}"
-  retention_in_days = 30
+  retention_in_days = 7
 
   tags = {
     Environment = var.environment

@@ -63,15 +63,14 @@
 - name: Deploy CloudWatch Agent configuration (J2 Template)
   ansible.builtin.template:
     src: amazon-cloudwatch-agent.json.j2
-    dest: /etc/amazon/amazon-cloudwatch-agent/amazon-cloudwatch-agent.json
+    dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
     owner: root
     group: root
     mode: "0644"
 
 - name: Apply CloudWatch Agent configuration
   ansible.builtin.command:
-    # 전송한 JSON 파일을 기반으로 에이전트 설정 반영
-    cmd: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/etc/amazon/amazon-cloudwatch-agent/amazon-cloudwatch-agent.json -s
+    cmd: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
   become: true
 
 # Docker 컨테이너가 IMDS 접근하도록 iptables 설정 (dev only)

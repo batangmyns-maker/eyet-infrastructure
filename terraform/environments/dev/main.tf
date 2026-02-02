@@ -429,7 +429,7 @@ module "ses_additional_domains" {
 
 resource "aws_cloudwatch_log_group" "bt_portal_backend" {
   name              = "/aws/ec2/bt-portal-backend/${var.environment}"
-  retention_in_days = 30
+  retention_in_days = 7
 
   tags = {
     Environment = var.environment
