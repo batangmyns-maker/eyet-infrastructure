@@ -96,9 +96,8 @@ module "security_groups" {
   environment              = var.environment
   vpc_id                   = module.vpc.vpc_id
   vpc_cidr                 = var.vpc_cidr
-  app_port                 = var.server_port
-  allowed_ssh_cidrs        = var.trusted_operator_cidrs
-  allowed_rds_public_cidrs = var.trusted_operator_cidrs
+  app_port               = var.server_port
+  trusted_operator_cidrs = var.trusted_operator_cidrs
 }
 
 # 2단계: 데이터베이스 및 시크릿

@@ -1,47 +1,36 @@
+# CloudFront Managed Prefix List
+data "aws_ec2_managed_prefix_list" "cloudfront" {
+  name = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
 # EC2 Security Group
 resource "aws_security_group" "ec2" {
   name_prefix = "${var.project_name}-${var.environment}-ec2-"
   description = "Security group for EC2 instance"
   vpc_id      = var.vpc_id
 
-  # HTTP (CloudFront에서만 접근)
+  # HTTP (CloudFront → EC2는 80번만 사용, HTTPS는 CloudFront가 처리)
   ingress {
-    description = "HTTP from anywhere"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "HTTP from CloudFront"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
   }
 
-  # HTTPS (CloudFront에서만 접근)
-  ingress {
-    description = "HTTPS from anywhere"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # 애플리케이션 포트 (Docker)
-  ingress {
-    description = "Application port"
-    from_port   = var.app_port
-    to_port     = var.app_port
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # SSH (특정 IP에서만 - 변수로 설정, 빈 배열이면 비활성화)
+  # 운영자 직접 접근 (IP 화이트리스트)
   dynamic "ingress" {
-    for_each = length(var.allowed_ssh_cidrs) > 0 ? [1] : []
+    for_each = length(var.trusted_operator_cidrs) > 0 ? [80, 443, var.app_port] : []
     content {
-      description = "SSH from allowed IPs"
-      from_port   = 22
-      to_port     = 22
+      description = "Port ${ingress.value} from trusted operators"
+      from_port   = ingress.value
+      to_port     = ingress.value
       protocol    = "tcp"
-      cidr_blocks = var.allowed_ssh_cidrs
+      cidr_blocks = var.trusted_operator_cidrs
     }
   }
+
+  # SSH 사용 안함 - Session Manager로 접속
 
   # Outbound - 모든 트래픽 허용
   egress {
@@ -87,11 +76,11 @@ resource "aws_security_group" "rds" {
     cidr_blocks = [var.vpc_cidr]
   }
 
-  # PostgreSQL (선택적 퍼블릭 접근 - IP 화이트리스트)
+  # PostgreSQL (운영자 직접 접근 - IP 화이트리스트)
   dynamic "ingress" {
-    for_each = var.allowed_rds_public_cidrs
+    for_each = var.trusted_operator_cidrs
     content {
-      description = "PostgreSQL from allowed public CIDR"
+      description = "PostgreSQL from trusted operator"
       from_port   = 5432
       to_port     = 5432
       protocol    = "tcp"

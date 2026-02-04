@@ -19,21 +19,13 @@ variable "app_port" {
   default     = 18082
 }
 
-variable "allowed_ssh_cidrs" {
-  description = "SSH 접근을 허용할 CIDR 블록 목록 (빈 배열이면 SSH 비활성화, Session Manager 사용)"
-  type        = list(string)
-  default     = []  # Session Manager 사용 시 빈 배열
-}
-
 variable "vpc_cidr" {
   description = "VPC CIDR 블록 (Query Editor v2 접근용)"
   type        = string
 }
 
-variable "allowed_rds_public_cidrs" {
-  description = "RDS 퍼블릭 접근을 허용할 CIDR 목록 (없으면 빈 배열)"
+variable "trusted_operator_cidrs" {
+  description = "운영자 직접 접근을 허용할 CIDR 목록 (EC2, RDS 직접 접근용)"
   type        = list(string)
   default     = []
 }
-
-
