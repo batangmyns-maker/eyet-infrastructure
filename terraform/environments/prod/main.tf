@@ -142,6 +142,7 @@ module "secrets_manager" {
   identity_verification_key_file_password = var.identity_verification_key_file_password
   identity_verification_client_prefix     = var.identity_verification_client_prefix
   identity_verification_encryption_key    = var.identity_verification_encryption_key
+  identity_verification_matching_key      = var.identity_verification_matching_key
   google_oauth_client_secret              = var.google_oauth_client_secret
 
   depends_on = [module.rds]
@@ -691,6 +692,38 @@ resource "aws_s3_bucket_lifecycle_configuration" "deploy_artifacts" {
   }
 }
 
+# 5-5단계: ECR 리포지토리 (컨테이너 이미지 저장소)
+resource "aws_ecr_repository" "bt_portal_backend_prod" {
+  name                 = "bt-portal-backend-prod"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "bt_portal_backend_prod" {
+  repository = aws_ecr_repository.bt_portal_backend_prod.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Expire untagged images"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 7
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
 # 6단계: EC2 인스턴스
 module "ec2" {
   source = "../../modules/ec2"
@@ -707,6 +740,7 @@ module "ec2" {
   file_transfer_bucket_name = aws_s3_bucket.file_transfer.id
   deploy_artifacts_bucket_name = aws_s3_bucket.deploy_artifacts.id
   aws_region                = var.aws_region
+  imds_http_put_response_hop_limit = 2
 
   db_host     = module.rds.db_instance_address
   db_port     = module.rds.db_instance_port

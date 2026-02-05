@@ -288,6 +288,13 @@ variable "identity_verification_encryption_key" {
   default     = null
 }
 
+variable "identity_verification_matching_key" {
+  description = "본인인증정보 DB 검색용 키"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
 # Google OAuth 설정
 variable "google_oauth_client_secret" {
   description = "Google OAuth Client Secret"

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git log:*)",
       "Bash(find:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(dir:*)"
     ]
   }
 }

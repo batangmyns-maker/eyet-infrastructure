@@ -24,13 +24,21 @@
     groups: docker
     append: true
 
-- name: Install Docker Compose v2 (docker compose)
+- name: Check if docker compose is available
+  ansible.builtin.command:
+    cmd: docker compose version
+  register: docker_compose_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Docker Compose v2 plugin (package)
   ansible.builtin.package:
     name:
       - docker-compose-plugin
     state: present
   register: docker_compose_plugin_pkg
   failed_when: false
+  when: docker_compose_check.rc != 0
 
 - name: Ensure Docker CLI plugins directory exists (fallback)
   ansible.builtin.file:
@@ -39,14 +47,14 @@
     owner: root
     group: root
     mode: "0755"
-  when: docker_compose_plugin_pkg is failed
+  when: docker_compose_check.rc != 0 and docker_compose_plugin_pkg is failed
 
 - name: Install Docker Compose v2 plugin (binary fallback)
   ansible.builtin.get_url:
     url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64"
     dest: /usr/local/lib/docker/cli-plugins/docker-compose
     mode: "0755"
-  when: docker_compose_plugin_pkg is failed
+  when: docker_compose_check.rc != 0 and docker_compose_plugin_pkg is failed
 
 - name: Ensure /app directories exist
   ansible.builtin.file:
@@ -59,6 +67,12 @@
     - /app
     - /app/uploaded-files
     - /app/logs
+
+- name: Ensure log directory exists
+  ansible.builtin.file:
+    path: "{{ log_path_prefix }}"
+    state: directory
+    mode: "0777"
 
 - name: Deploy CloudWatch Agent configuration (J2 Template)
   ansible.builtin.template:
