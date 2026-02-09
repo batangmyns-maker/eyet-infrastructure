@@ -1,6 +1,6 @@
 {
   "agent": {
-    "metrics_collection_interval": 60,
+    "metrics_collection_interval": 36000,
     "run_as_user": "root"
   },
   "metrics": {
@@ -9,14 +9,12 @@
       "mem": {
         "measurement": [
           "mem_used_percent"
-        ],
-        "metrics_collection_interval": 60
+        ]
       },
       "disk": {
         "measurement": [
           "disk_used_percent"
         ],
-        "metrics_collection_interval": 60,
         "resources": [
           "/"
         ]
