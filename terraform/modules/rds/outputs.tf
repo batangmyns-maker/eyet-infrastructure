@@ -29,4 +29,9 @@ output "db_master_username" {
   sensitive   = true
 }
 
+output "db_instance_identifier" {
+  description = "RDS 인스턴스 식별자"
+  value       = aws_db_instance.main.identifier
+}
+
 

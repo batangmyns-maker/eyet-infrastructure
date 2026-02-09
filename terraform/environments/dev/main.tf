@@ -509,6 +509,21 @@ module "ec2" {
   depends_on = [module.rds, module.secrets_manager, aws_cloudwatch_log_group.bt_portal_backend]
 }
 
+# ─── Instance Scheduler (평일 08:00~19:00 KST 자동 시작/중지) ───
+
+module "instance_scheduler" {
+  count  = var.enable_instance_scheduler ? 1 : 0
+  source = "../../modules/instance-scheduler"
+
+  project_name            = var.project_name
+  environment             = var.environment
+  aws_region              = var.aws_region
+  ec2_instance_id         = module.ec2.instance_id
+  rds_instance_identifier = module.rds.db_instance_identifier
+
+  depends_on = [module.ec2, module.rds]
+}
+
 module "cloudfront" {
   source = "../../modules/cloudfront"
 

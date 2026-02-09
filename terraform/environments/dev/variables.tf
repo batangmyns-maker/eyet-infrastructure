@@ -207,3 +207,9 @@ variable "alarm_email" {
   type      = string
   sensitive = true
 }
+
+variable "enable_instance_scheduler" {
+  description = "인스턴스 자동 시작/중지 스케줄러 활성화"
+  type        = bool
+  default     = true
+}
